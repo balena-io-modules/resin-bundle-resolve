@@ -1,0 +1,5 @@
+node_modules
+.vscode
+# Ignore generated test files
+src/**/*.js
+tests/**/*.js
