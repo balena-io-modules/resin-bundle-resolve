@@ -13,6 +13,7 @@ const dockerfileTemplate_1 = require("./resolvers/dockerfileTemplate");
 exports.DockerfileTemplateResolver = dockerfileTemplate_1.default;
 const archDockerfile_1 = require("./resolvers/archDockerfile");
 exports.ArchDockerfileResolver = archDockerfile_1.default;
+const nodeResolver_1 = require("./resolvers/nodeResolver");
 function resolveBundle(bundle, resolvers) {
     return new Promise((resolve, reject) => {
         const extract = tar.extract();
@@ -73,7 +74,8 @@ function getDefaultResolvers() {
     return [
         new dockerfile_1.default(),
         new dockerfileTemplate_1.default(),
-        new archDockerfile_1.default()
+        new archDockerfile_1.default(),
+        new nodeResolver_1.default()
     ];
 }
 exports.getDefaultResolvers = getDefaultResolvers;

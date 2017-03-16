@@ -43,6 +43,7 @@ export default class DockerfileTemplateResolver implements Resolver {
 					vars
 				)
 			)
+			dockerfile.size = dockerfile.contents.length
 			resolve([dockerfile])
 		})
 	}

@@ -11,6 +11,7 @@ import * as Utils from './utils'
 import DockerfileResolver from './resolvers/dockerfile'
 import DockerfileTemplateResolver from './resolvers/dockerfileTemplate'
 import ArchDockerfileResolver from './resolvers/archDockerfile'
+import NodeResolver from './resolvers/nodeResolver'
 
 // re-export
 export { ArchDockerfileResolver,
@@ -100,6 +101,7 @@ export function getDefaultResolvers(): Resolver[] {
 	return [
 		new DockerfileResolver(),
 		new DockerfileTemplateResolver(),
-		new ArchDockerfileResolver()
+		new ArchDockerfileResolver(),
+		new NodeResolver()
 	]
 }

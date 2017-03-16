@@ -14,7 +14,7 @@
   ],
   "exclude": [
     "node_modules",
-    "lib",
+    "build",
     "tests"
   ]
 }

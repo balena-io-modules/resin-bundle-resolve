@@ -15,6 +15,7 @@ import * as Utils from '../src/utils'
 const dockerfileResolverIdx = 0
 const dockerfileTemplateResolverIdx = 1
 const archDockerfileResolverIdx = 2
+const nodeResolverIdx = 3
 const defaultResolvers : () => Resolve.Resolver[] = () => Resolve.getDefaultResolvers()
 
 
@@ -129,12 +130,12 @@ describe('Resolvers', () => {
 			assert(resolved.projectType === name, 'Architecture specific dockerfile resolver not used')
 
 			return getDockerfileFromTarStream(resolved.tarStream)
-			.then((contents) => {
-				assert(
-					contents.trim() === 'correct',
-					'Device type dockerfile not priorities over arch'
-				)
-			})
+				.then((contents) => {
+					assert(
+						contents.trim() === 'correct',
+						'Device type dockerfile not priorities over arch'
+					)
+				})
 
 		})
 	})
@@ -147,10 +148,31 @@ describe('Resolvers', () => {
 		const bundle = new Resolve.Bundle(stream, '', '')
 		return Resolve.resolveBundle(bundle, resolvers)
 			.then((resolved) => {
-				// done(new Error('Incorrect template variables not throwing error'))
 				assert(false, 'Incorrect template variables not throwing error')
 			})
-			.catch((e) => { /* Precisely what we want */ })
+			.catch(() => { /* Precisely what we want */ })
+	})
+
+	it('should resolve a nodeJS project', () => {
+		const resolvers = defaultResolvers()
+		const arch = ''
+		const deviceType = 'raspberrypi3'
+		const name = resolvers[nodeResolverIdx].name
+		const stream = fs.createReadStream('./tests/test-files/NodeProject/archive.tar')
+
+		const bundle = new Resolve.Bundle(stream, deviceType, arch)
+		return Resolve.resolveBundle(bundle, resolvers)
+			.then((resolved) => {
+				assert(resolved.projectType === name, 'Node resolver not used on node project')
+
+				return getDockerfileFromTarStream(resolved.tarStream)
+					.then((contents) => {
+						assert(
+							contents.trim().split(/\r?\n/)[0] === `FROM resin/${deviceType}-node`,
+							'Node base image not used'
+						)
+					})
+			})
 	})
 })
 

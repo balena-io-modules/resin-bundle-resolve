@@ -31,6 +31,7 @@ class DockerfileTemplateResolver {
         return new Promise((resolve) => {
             // FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
             dockerfile.contents = new Buffer(DockerfileTemplate.process(this.templateContent.toString(), vars));
+            dockerfile.size = dockerfile.contents.length;
             resolve([dockerfile]);
         });
     }

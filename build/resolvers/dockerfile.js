@@ -16,7 +16,7 @@ class DockerfileResolver {
         return this.gotDockerfile;
     }
     resolve() {
-        // We don't need to add any extra files to the Dockefile project
+        // We don't need to add any extra files to the Dockerfile project
         return Promise.resolve([]);
     }
 }
