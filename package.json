@@ -1,0 +1,43 @@
+{
+  "name": "resin-bundle-resolve",
+  "version": "0.0.1",
+  "description": "Resolve resin-bundles into a docker daemon format",
+  "main": "build/index.js",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "gulp",
+    "test": "mocha --compilers ts:ts-node/register tests/tests.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/resin-io-modules/resin-bundle-resolve.git"
+  },
+  "author": "Cameron Diver <cameron@resin.io>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/resin-io-modules/resin-bundle-resolve/issues"
+  },
+  "homepage": "https://github.com/resin-io-modules/resin-bundle-resolve#readme",
+  "devDependencies": {
+    "@types/chai": "^3.4.35",
+    "@types/mocha": "^2.2.39",
+    "chai": "^3.5.0",
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-sourcemaps": "^2.4.1",
+    "gulp-typescript": "^3.1.5",
+    "gulp-util": "^3.0.8",
+    "mocha": "^3.2.0",
+    "ts-node": "^2.1.0",
+    "typescript": "^2.1.6"
+  },
+  "dependencies": {
+    "@types/bluebird": "^3.0.37",
+    "@types/lodash": "^4.14.52",
+    "@types/node": "^7.0.7",
+    "bluebird": "^3.4.7",
+    "dockerfile-template": "0.0.2",
+    "lodash": "^4.17.4",
+    "tar-stream": "^1.5.2"
+  }
+}
