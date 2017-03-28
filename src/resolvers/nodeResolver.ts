@@ -4,7 +4,7 @@ import { Bundle, FileInfo, Resolver } from '../resolver'
 
 export default class NodeResolver implements Resolver {
 	public priority = 0
-	public name = 'NodeJS project'
+	public name = 'NodeJS'
 
 	private hasPackageJson = false
 
