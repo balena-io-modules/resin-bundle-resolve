@@ -49,7 +49,7 @@ export interface Resolver {
 	 * resolve: Once a resolver has reported itself as being satisfied with the input,
 	 * resolve will be called, which will return a promise of a list of files to be added
 	 * to the bundle, which will allow Docker to build the bundle.
-	 * 
+	 *
 	 * @param bundle
 	 * 	The resin-bundle which will be resolved
 	 * @return

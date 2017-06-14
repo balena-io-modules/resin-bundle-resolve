@@ -50,15 +50,29 @@ function resolveBundle(bundle, resolvers) {
             // Now that we have a resolver, add the new files needed to the stream
             resolver.resolve(bundle)
                 .then((additionalItems) => {
-                additionalItems.map((file) => {
+                return Promise.map(additionalItems, (file) => {
                     pack.entry({ name: file.name, size: file.size }, file.contents);
-                });
-                // all of the extra files have now been added to the stream, resolve
-                // the promise with it
-                pack.finalize();
-                resolve({
-                    projectType: resolver.name,
-                    tarStream: pack
+                    if (file.name === 'Dockerfile') {
+                        return bundle.callDockerfileHook(file.contents.toString());
+                    }
+                })
+                    .then(() => {
+                    return Promise.try(() => {
+                        if (resolver.name === 'Standard Dockerfile') {
+                            // The hook will not have been ran on this file yet, as the Dockerfile was not added
+                            // as an additional item
+                            return bundle.callDockerfileHook(resolver.getDockerfileContents());
+                        }
+                    });
+                })
+                    .then(() => {
+                    // all of the extra files have now been added to the stream, resolve
+                    // the promise with it
+                    pack.finalize();
+                    resolve({
+                        projectType: resolver.name,
+                        tarStream: pack
+                    });
                 });
             })
                 .catch((error) => {

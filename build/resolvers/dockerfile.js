@@ -10,6 +10,7 @@ class DockerfileResolver {
     entry(file) {
         if (file.name === 'Dockerfile') {
             this.gotDockerfile = true;
+            this.dockerfileContents = file.contents.toString();
         }
     }
     isSatisfied() {
@@ -18,6 +19,9 @@ class DockerfileResolver {
     resolve() {
         // We don't need to add any extra files to the Dockerfile project
         return Promise.resolve([]);
+    }
+    getDockerfileContents() {
+        return this.dockerfileContents;
     }
 }
 exports.default = DockerfileResolver;

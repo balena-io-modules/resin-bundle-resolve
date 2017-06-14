@@ -28,7 +28,7 @@ export interface ResolvedBundle {
 
 export function resolveBundle(bundle: Bundle, resolvers: Resolver[]): Promise<ResolvedBundle> {
 	return new Promise<ResolvedBundle>((resolve: (resolved: ResolvedBundle) => void,
-	                                    reject: (err: Error) => void) => {
+                                      reject: (err: Error) => void) => {
 		const extract = tar.extract()
 		const pack = tar.pack()
 
@@ -71,17 +71,34 @@ export function resolveBundle(bundle: Bundle, resolvers: Resolver[]): Promise<Re
 			// Now that we have a resolver, add the new files needed to the stream
 			resolver.resolve(bundle)
 			.then((additionalItems) => {
-				additionalItems.map((file: FileInfo) => {
+
+				return Promise.map(additionalItems, (file: FileInfo) => {
 					pack.entry({ name: file.name, size: file.size }, file.contents)
+					if (file.name === 'Dockerfile') {
+						return bundle.callDockerfileHook(file.contents.toString())
+					}
 				})
+				.then(() => {
 
-				// all of the extra files have now been added to the stream, resolve
-				// the promise with it
-				pack.finalize()
+					return Promise.try(() => {
+						if (resolver.name === 'Standard Dockerfile') {
+							// The hook will not have been ran on this file yet, as the Dockerfile was not added
+							// as an additional item
+							return bundle.callDockerfileHook((resolver as DockerfileResolver).getDockerfileContents())
+						}
+					})
 
-				resolve({
-					projectType: resolver.name,
-					tarStream: pack
+				})
+				.then(() => {
+
+					// all of the extra files have now been added to the stream, resolve
+					// the promise with it
+					pack.finalize()
+
+					resolve({
+						projectType: resolver.name,
+						tarStream: pack
+					})
 				})
 
 			})

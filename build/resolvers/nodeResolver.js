@@ -4,7 +4,7 @@ const Promise = require("bluebird");
 class NodeResolver {
     constructor() {
         this.priority = 0;
-        this.name = 'NodeJS project';
+        this.name = 'NodeJS';
         this.hasPackageJson = false;
     }
     entry(file) {
