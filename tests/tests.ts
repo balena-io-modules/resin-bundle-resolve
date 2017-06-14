@@ -176,6 +176,45 @@ describe('Resolvers', () => {
 	})
 })
 
+describe('Hooks', () => {
+	it('should call a hook on a resolved Dockerfile.template bundle', (done) => {
+		const resolvers = defaultResolvers()
+		const arch = 'arch'
+		const deviceType = 'dt'
+
+		const stream = fs.createReadStream('./tests/test-files/Hooks/Template/archive.tar')
+
+		const hook = (contents: string): Promise<void> => {
+			expect(contents.trim()).to.equal(`${deviceType}:${arch}`)
+			done()
+			return Promise.resolve()
+		}
+
+		const bundle = new Resolve.Bundle(stream, deviceType, arch, hook)
+		Resolve.resolveBundle(bundle, resolvers)
+
+	})
+
+	it('should call a hook on a resolved Dockerfile bundle', (done) => {
+
+		const resolvers = defaultResolvers()
+		const arch = ''
+		const deviceType = ''
+
+		const stream = fs.createReadStream('./tests/test-files/Hooks/Dockerfile/archive.tar')
+
+		const hook = (contents: string): Promise<void> => {
+			expect(contents.trim()).to.equal('This is the dockerfile contents')
+			done()
+			return Promise.resolve()
+		}
+
+		const bundle = new Resolve.Bundle(stream, deviceType, arch, hook)
+		Resolve.resolveBundle(bundle, resolvers)
+	})
+
+})
+
 describe('Utils', () => {
 	it('should correctly normalize tar entries', (done) => {
 		const fn = Utils.normalizeTarEntry

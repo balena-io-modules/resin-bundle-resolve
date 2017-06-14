@@ -1,5 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Promise = require("bluebird");
+const emptyHook = (contents) => {
+    return Promise.resolve();
+};
 class Bundle {
     /**
      * constructor: Initialise a resin-bundle with a tar archive stream
@@ -12,10 +16,14 @@ class Bundle {
      * @param architecture
      *  The architecture that this resin bundle is currently targeting
      */
-    constructor(tarStream, deviceType, architecture) {
+    constructor(tarStream, deviceType, architecture, hook = emptyHook) {
         this.tarStream = tarStream;
         this.deviceType = deviceType;
         this.architecture = architecture;
+        this.dockerfileHook = hook;
+    }
+    callDockerfileHook(contents) {
+        return this.dockerfileHook(contents);
     }
 }
 exports.default = Bundle;
