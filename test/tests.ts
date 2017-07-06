@@ -49,7 +49,7 @@ function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 
 describe('Resolvers', () => {
 	it('should return resolve a standard Dockerfile project', () => {
-		const stream = fs.createReadStream('./tests/test-files/Dockerfile/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/Dockerfile/archive.tar'))
 
 		const bundle = new Resolve.Bundle(stream, '', '')
 		const resolvers = defaultResolvers()
@@ -65,7 +65,7 @@ describe('Resolvers', () => {
 	it('should resolve a Dockerfile.template correctly', () => {
 		const deviceType = 'device-type-test'
 		const arch = 'architecture-test'
-		const stream = fs.createReadStream('./tests/test-files/DockerfileTemplate/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/DockerfileTemplate/archive.tar'))
 		const resolvers = defaultResolvers()
 		const name = resolvers[dockerfileTemplateResolverIdx].name
 
@@ -97,14 +97,14 @@ describe('Resolvers', () => {
 		const arch = 'i386'
 		const resolvers = defaultResolvers()
 		const name = resolvers[archDockerfileResolverIdx].name
-		const stream = fs.createReadStream('./tests/test-files/ArchitectureDockerfile/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/ArchitectureDockerfile/archive.tar'))
 
 		const bundle = new Resolve.Bundle(stream, '', arch)
 		return Resolve.resolveBundle(bundle, resolvers)
 			.then((resolved) => {
 				assert(
 					resolved.projectType === name,
-					'Architecutre specific dockerfile resolver not used'
+					'Architecture specific dockerfile resolver not used'
 				)
 
 				return getDockerfileFromTarStream(resolved.tarStream)
@@ -122,7 +122,7 @@ describe('Resolvers', () => {
 		const deviceType = 'raspberry-pi2'
 		const resolvers = defaultResolvers()
 		const name = resolvers[archDockerfileResolverIdx].name
-		const stream = fs.createReadStream('./tests/test-files/ArchPriority/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/ArchPriority/archive.tar'))
 
 		const bundle = new Resolve.Bundle(stream, deviceType, arch)
 		return Resolve.resolveBundle(bundle, resolvers)
@@ -143,7 +143,7 @@ describe('Resolvers', () => {
 	it('should handle incorrect template variables', () => {
 		const resolvers = defaultResolvers()
 		const name = resolvers[dockerfileTemplateResolverIdx].name
-		const stream = fs.createReadStream('./tests/test-files/IncorrectTemplateMacros/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/IncorrectTemplateMacros/archive.tar'))
 
 		const bundle = new Resolve.Bundle(stream, '', '')
 		return Resolve.resolveBundle(bundle, resolvers)
@@ -158,7 +158,7 @@ describe('Resolvers', () => {
 		const arch = ''
 		const deviceType = 'raspberrypi3'
 		const name = resolvers[nodeResolverIdx].name
-		const stream = fs.createReadStream('./tests/test-files/NodeProject/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/NodeProject/archive.tar'))
 
 		const bundle = new Resolve.Bundle(stream, deviceType, arch)
 		return Resolve.resolveBundle(bundle, resolvers)
@@ -182,7 +182,7 @@ describe('Hooks', () => {
 		const arch = 'arch'
 		const deviceType = 'dt'
 
-		const stream = fs.createReadStream('./tests/test-files/Hooks/Template/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/Hooks/Template/archive.tar'))
 
 		const hook = (contents: string): Promise<void> => {
 			expect(contents.trim()).to.equal(`${deviceType}:${arch}`)
@@ -201,7 +201,7 @@ describe('Hooks', () => {
 		const arch = ''
 		const deviceType = ''
 
-		const stream = fs.createReadStream('./tests/test-files/Hooks/Dockerfile/archive.tar')
+		const stream = fs.createReadStream(require.resolve('./test-files/Hooks/Dockerfile/archive.tar'))
 
 		const hook = (contents: string): Promise<void> => {
 			expect(contents.trim()).to.equal('This is the dockerfile contents')
