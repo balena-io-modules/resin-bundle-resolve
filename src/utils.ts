@@ -13,15 +13,15 @@ import * as path from 'path'
 export function normalizeTarEntry(name: string): string {
   const normalized = path.normalize(name)
   if (path.isAbsolute(normalized)) {
-    return normalized.substr(normalized.indexOf('/') + 1)
+    return normalized.substr(normalized.indexOf(path.sep) + 1)
   }
   return normalized
 }
 
 /**
  * streamToBuffer: Given a stream, read it into a buffer
- * @param stream 
- * @param size 
+ * @param stream
+ * @param size
  */
 export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {

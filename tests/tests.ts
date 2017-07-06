@@ -19,7 +19,7 @@ const nodeResolverIdx = 3
 const defaultResolvers : () => Resolve.Resolver[] = () => Resolve.getDefaultResolvers()
 
 
-function getDockerfileFromTarStream(stream: NodeJS.ReadableStream): Promise<string> {
+function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
 		const extract = tar.extract()
 		let foundDockerfile = false
@@ -220,9 +220,9 @@ describe('Utils', () => {
 		const fn = Utils.normalizeTarEntry
 		expect(fn('Dockerfile')).to.equal('Dockerfile')
 		expect(fn('./Dockerfile')).to.equal('Dockerfile')
-		expect(fn('../Dockerfile')).to.equal('../Dockerfile')
+		expect(fn('../Dockerfile')).to.equal(path.join('..', 'Dockerfile'))
 		expect(fn('/Dockerfile')).to.equal('Dockerfile')
-		expect(fn('./a/b/Dockerfile')).to.equal('a/b/Dockerfile')
+		expect(fn('./a/b/Dockerfile')).to.equal(path.join('a', 'b', 'Dockerfile'))
 		done()
 	})
 })

@@ -33,5 +33,4 @@ function streamToBuffer(stream) {
     });
 }
 exports.streamToBuffer = streamToBuffer;
-
 //# sourceMappingURL=utils.js.map
