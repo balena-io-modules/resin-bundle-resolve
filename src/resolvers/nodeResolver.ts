@@ -1,8 +1,44 @@
 import * as Promise from 'bluebird'
 
 import * as _ from 'lodash'
+import * as request from 'request'
+import * as semver from 'semver'
+
+const getAsync = Promise.promisify(request.get, { multiArgs: true })
+
+import * as BluebirdLRU from 'bluebird-lru-cache'
 
 import { Bundle, FileInfo, Resolver } from '../resolver'
+
+
+// Used below for when no engine version can be determined.
+const DEFAULT_NODE = '0.10.22'
+
+const versionTest = RegExp.prototype.test.bind(/^[0-9]+\.[0-9]+\.[0-9]+$/)
+const versionCache: { get: (deviceType: string) => Promise<string[]> } = new BluebirdLRU({
+	maxAge: 3600 * 1000, // 1 hour
+	fetchFn: (deviceType: string) => {
+		const get = (prev: string[], url: string): Promise<string[]> => {
+			return getAsync({
+				url,
+				json: true
+			})
+			.get(1)
+			.then((res: { results: { name: string }[], next?: string }) => {
+				const curr = _(res.results).map('name').filter(versionTest).value()
+				const tags = prev.concat(curr)
+
+				if (res.next != null) {
+					return get(tags, res.next)
+				} else {
+					return tags
+				}
+			})
+		}
+
+		return get([], `https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/`)
+	}
+})
 
 export default class NodeResolver implements Resolver {
 	public priority = 0
@@ -39,35 +75,43 @@ export default class NodeResolver implements Resolver {
 
 			this.hasScripts = this.hasScripts || _(packageJson.scripts).pick('preinstall', 'install', 'postinstall').size() > 0
 
-			let dockerfile: string
-			if (this.hasScripts) {
-				dockerfile = `
-					FROM resin/${bundle.deviceType}-node
-					WORKDIR /usr/src/app
-					RUN ln -s /usr/src/app /app
-					COPY . /usr/src/app
-					RUN DEBIAN_FRONTEND=noninteractive JOBS=MAX npm install --unsafe-perm
-					CMD [ "npm", "start" ]
+			const nodeEngine = _.get(packageJson, 'engines.node')
+			if (nodeEngine != null && !_.isString(nodeEngine)) {
+				throw new Error('package.json: engines.node must be a string if present')
+			}
+			const range: string = nodeEngine || DEFAULT_NODE // Keep old default for compatiblity
+
+			return versionCache.get(bundle.deviceType)
+			.then((versions) => {
+				const nodeVersion = semver.maxSatisfying(versions, range)
+
+				if (nodeVersion == null) {
+					throw new Error(`Couldn't satisfy node version ${range}`)
+				}
+
+				let dockerfile: string
+				if (this.hasScripts) {
+					dockerfile = `
+						FROM resin/${bundle.deviceType}-node:${nodeVersion}
+						RUN mkdir -p /usr/src/app && ln -s /usr/src/app /app
+						WORKDIR /usr/src/app
+						COPY . /usr/src/app
+						RUN DEBIAN_FRONTEND=noninteractive JOBS=MAX npm install --unsafe-perm
+						CMD [ "npm", "start" ]
+						`
+				} else {
+					dockerfile = `
+						FROM resin/${bundle.deviceType}-node:${nodeVersion}-onbuild
+						RUN ln -s /usr/src/app /app
 					`
-			} else {
-				dockerfile = `
-					FROM resin/${bundle.deviceType}-node
-					WORKDIR /usr/src/app
-					RUN ln -s /usr/src/app /app
-
-					COPY package.json .
-					RUN DEBIAN_FRONTEND=noninteractive JOBS=MAX npm install --unsafe-perm
-
-					COPY . ./
-					CMD ["npm", "start"]
-				`
-			}
-			const file: FileInfo = {
-				name: 'Dockerfile',
-				size: dockerfile.length,
-				contents: new Buffer(dockerfile)
-			}
-			return [ file ]
+				}
+				const file: FileInfo = {
+					name: 'Dockerfile',
+					size: dockerfile.length,
+					contents: new Buffer(dockerfile)
+				}
+				return [ file ]
+			})
 		})
 	}
 }
