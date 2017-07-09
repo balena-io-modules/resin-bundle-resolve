@@ -23,15 +23,16 @@ export default class NodeResolver implements Resolver {
 		// Use latest node base image. Don't use the slim image just in case
 		// TODO: Find out which apt-get packages are installed mostly with node
 		// base images.
-		const dockerfile = `FROM resin/${bundle.deviceType}-node
+		const dockerfile = `
+			FROM resin/${bundle.deviceType}-node
+			WORKDIR /usr/src/app
+			RUN ln -s /usr/src/app /app
 
-WORKDIR /usr/src/app
+			COPY package.json .
+			RUN DEBIAN_FRONTEND=noninteractive JOBS=MAX npm install --unsafe-perm
 
-COPY package.json .
-RUN npm install
-
-COPY . ./
-CMD ["npm", "start"]
+			COPY . ./
+			CMD ["npm", "start"]
 		`
 
 		const file: FileInfo = {
