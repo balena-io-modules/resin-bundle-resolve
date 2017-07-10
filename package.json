@@ -1,6 +1,6 @@
 {
   "name": "resin-bundle-resolve",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Resolve resin-bundles into a docker daemon format",
   "main": "build/index.js",
   "types": "src/index.ts",
@@ -35,9 +35,14 @@
     "@types/bluebird": "^3.0.37",
     "@types/lodash": "^4.14.52",
     "@types/node": "^7.0.7",
+    "@types/request": "0.0.45",
+    "@types/semver": "^5.3.32",
     "bluebird": "^3.4.7",
+    "bluebird-lru-cache": "^1.0.0",
     "dockerfile-template": "0.0.2",
     "lodash": "^4.17.4",
+    "request": "^2.81.0",
+    "semver": "^5.3.0",
     "tar-stream": "^1.5.2"
   }
 }

@@ -168,7 +168,7 @@ describe('Resolvers', () => {
 				return getDockerfileFromTarStream(resolved.tarStream)
 					.then((contents) => {
 						assert(
-							contents.trim().split(/\r?\n/)[0] === `FROM resin/${deviceType}-node`,
+							contents.trim().split(/\r?\n/)[0] === `FROM resin/${deviceType}-node:0.10.22`,
 							'Node base image not used'
 						)
 					})
