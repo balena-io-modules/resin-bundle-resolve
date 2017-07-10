@@ -36,7 +36,8 @@ const versionCache: { get: (deviceType: string) => Promise<string[]> } = new Blu
 			})
 		}
 
-		return get([], `https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/`)
+		// 100 is the max page size
+		return get([], `https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/?page_size=100`)
 	}
 })
 
