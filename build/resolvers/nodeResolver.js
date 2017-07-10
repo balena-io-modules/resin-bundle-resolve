@@ -39,5 +39,4 @@ CMD ["npm", "start"]
     }
 }
 exports.default = NodeResolver;
-
 //# sourceMappingURL=nodeResolver.js.map

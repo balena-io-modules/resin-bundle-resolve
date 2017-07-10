@@ -55,5 +55,4 @@ class ArchDockerfileResolver {
     }
 }
 exports.default = ArchDockerfileResolver;
-
 //# sourceMappingURL=archDockerfile.js.map

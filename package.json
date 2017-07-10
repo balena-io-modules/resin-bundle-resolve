@@ -1,12 +1,12 @@
 {
   "name": "resin-bundle-resolve",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Resolve resin-bundles into a docker daemon format",
   "main": "build/index.js",
   "types": "src/index.ts",
   "scripts": {
     "build": "gulp",
-    "test": "mocha --compilers ts:ts-node/register tests/tests.ts"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -28,7 +28,7 @@
     "gulp-typescript": "^3.1.5",
     "gulp-util": "^3.0.8",
     "mocha": "^3.2.0",
-    "ts-node": "^2.1.0",
+    "ts-node": "^3.2.0",
     "typescript": "^2.1.6"
   },
   "dependencies": {

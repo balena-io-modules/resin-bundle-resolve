@@ -93,5 +93,4 @@ function getDefaultResolvers() {
     ];
 }
 exports.getDefaultResolvers = getDefaultResolvers;
-
 //# sourceMappingURL=index.js.map

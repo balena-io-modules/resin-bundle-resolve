@@ -37,5 +37,4 @@ class DockerfileTemplateResolver {
     }
 }
 exports.default = DockerfileTemplateResolver;
-
 //# sourceMappingURL=dockerfileTemplate.js.map
