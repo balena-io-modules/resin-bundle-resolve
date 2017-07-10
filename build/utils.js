@@ -14,7 +14,7 @@ const path = require("path");
 function normalizeTarEntry(name) {
     const normalized = path.normalize(name);
     if (path.isAbsolute(normalized)) {
-        return normalized.substr(normalized.indexOf('/') + 1);
+        return normalized.substr(normalized.indexOf(path.sep) + 1);
     }
     return normalized;
 }
