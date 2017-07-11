@@ -27,4 +27,5 @@ class Bundle {
     }
 }
 exports.default = Bundle;
+
 //# sourceMappingURL=bundle.js.map

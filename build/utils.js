@@ -27,10 +27,11 @@ exports.normalizeTarEntry = normalizeTarEntry;
 function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
         let buffer = new Buffer('');
-        stream.on('data', (data) => buffer = Buffer.concat([buffer, data]));
+        stream.on('data', (data) => (buffer = Buffer.concat([buffer, data])));
         stream.on('end', () => resolve(buffer));
         stream.on('error', reject);
     });
 }
 exports.streamToBuffer = streamToBuffer;
+
 //# sourceMappingURL=utils.js.map

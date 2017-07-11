@@ -55,20 +55,25 @@ class NodeResolver {
         // Use latest node base image. Don't use the slim image just in case
         // TODO: Find out which apt-get packages are installed mostly with node
         // base images.
-        return Promise.try(() => JSON.parse(this.packageJsonContent.toString())).catch((e) => {
+        return Promise.try(() => JSON.parse(this.packageJsonContent.toString()))
+            .catch((e) => {
             throw new Error(`package.json: ${e.message}`);
-        }).then((packageJson) => {
+        })
+            .then(packageJson => {
             if (!_.isObject(packageJson)) {
                 throw new Error('package.json: must be a JSON object');
             }
-            this.hasScripts = this.hasScripts || _(packageJson.scripts).pick('preinstall', 'install', 'postinstall').size() > 0;
+            this.hasScripts =
+                this.hasScripts ||
+                    _(packageJson.scripts)
+                        .pick('preinstall', 'install', 'postinstall')
+                        .size() > 0;
             const nodeEngine = _.get(packageJson, 'engines.node');
             if (nodeEngine != null && !_.isString(nodeEngine)) {
                 throw new Error('package.json: engines.node must be a string if present');
             }
             const range = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
-            return versionCache.get(bundle.deviceType)
-                .then((versions) => {
+            return versionCache.get(bundle.deviceType).then(versions => {
                 const nodeVersion = semver.maxSatisfying(versions, range);
                 if (nodeVersion == null) {
                     throw new Error(`Couldn't satisfy node version ${range}`);
@@ -101,4 +106,5 @@ class NodeResolver {
     }
 }
 exports.default = NodeResolver;
+
 //# sourceMappingURL=nodeResolver.js.map

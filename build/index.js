@@ -20,8 +20,7 @@ function resolveBundle(bundle, resolvers) {
         const pack = tar.pack();
         extract.on('entry', (header, stream, next) => {
             // Read the contents into a buffer
-            Utils.streamToBuffer(stream)
-                .then((buffer) => {
+            Utils.streamToBuffer(stream).then((buffer) => {
                 // send the file along to the next tar stream regardless
                 pack.entry(header, buffer);
                 // create a FileInfo from the header
@@ -31,7 +30,7 @@ function resolveBundle(bundle, resolvers) {
                     contents: buffer
                 };
                 // Now provide the resolvers with the information and file
-                resolvers.map((resolver) => {
+                resolvers.map(resolver => {
                     resolver.entry(info);
                 });
                 next();
@@ -48,8 +47,9 @@ function resolveBundle(bundle, resolvers) {
             }
             const resolver = maybeResolver;
             // Now that we have a resolver, add the new files needed to the stream
-            resolver.resolve(bundle)
-                .then((additionalItems) => {
+            resolver
+                .resolve(bundle)
+                .then(additionalItems => {
                 return Promise.map(additionalItems, (file) => {
                     pack.entry({ name: file.name, size: file.size }, file.contents);
                     if (file.name === 'Dockerfile') {
@@ -93,4 +93,5 @@ function getDefaultResolvers() {
     ];
 }
 exports.getDefaultResolvers = getDefaultResolvers;
+
 //# sourceMappingURL=index.js.map
