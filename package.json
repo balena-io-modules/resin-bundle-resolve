@@ -1,11 +1,12 @@
 {
   "name": "resin-bundle-resolve",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Resolve resin-bundles into a docker daemon format",
   "main": "build/index.js",
   "types": "src/index.ts",
   "scripts": {
-    "precommit": "prettier --use-tabs --single-quote --write \"{src,typings,test}/**/*.ts\"",
+    "precommit": "npm run format && npm run build && git add build/",
+    "format": "prettier --use-tabs --single-quote --write \"{src,typings,test}/**/*.ts\"",
     "build": "gulp",
     "test": "mocha"
   },

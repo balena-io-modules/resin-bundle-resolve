@@ -45,7 +45,7 @@ class ArchDockerfileResolver {
             satisfied = this.satisifiedArch;
         }
         else {
-            throw new Error('Resolve called without a satisfied architecture specific dockerfile');
+            return Promise.reject('Resolve called without a satisfied architecture specific dockerfile');
         }
         return Promise.resolve([
             {
