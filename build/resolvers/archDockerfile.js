@@ -21,7 +21,7 @@ class ArchDockerfileResolver {
     }
     isSatisfied(bundle) {
         // Check for both satisfied architecture and device type
-        this.archDockerfiles.map((dockerfile) => {
+        this.archDockerfiles.map(dockerfile => {
             if (dockerfile[0] === bundle.architecture) {
                 this.satisifiedArch = dockerfile;
             }
@@ -29,8 +29,8 @@ class ArchDockerfileResolver {
                 this.satisfiedDeviceType = dockerfile;
             }
         });
-        return (this.satisifiedArch !== undefined)
-            || (this.satisfiedDeviceType !== undefined);
+        return (this.satisifiedArch !== undefined ||
+            this.satisfiedDeviceType !== undefined);
     }
     resolve(bundle) {
         // Return the satisfied arch/deviceType specific dockerfile,
@@ -47,12 +47,15 @@ class ArchDockerfileResolver {
         else {
             throw new Error('Resolve called without a satisfied architecture specific dockerfile');
         }
-        return Promise.resolve([{
+        return Promise.resolve([
+            {
                 name: 'Dockerfile',
                 size: satisfied[1].size,
                 contents: satisfied[1].contents
-            }]);
+            }
+        ]);
     }
 }
 exports.default = ArchDockerfileResolver;
+
 //# sourceMappingURL=archDockerfile.js.map

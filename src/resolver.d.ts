@@ -1,10 +1,10 @@
-import * as Promise from 'bluebird'
+import * as Promise from 'bluebird';
 
-import Bundle from './bundle'
-import { FileInfo } from './fileInfo'
+import Bundle from './bundle';
+import { FileInfo } from './fileInfo';
 
 // Make the external types available to implementers
-export { Bundle, FileInfo }
+export { Bundle, FileInfo };
 /**
  * Resolver: Base interface for any project type resolver.
  */
@@ -14,12 +14,12 @@ export interface Resolver {
 	 * a resin-bundle, e.g. a resolver with a higher priority will attempt to make
 	 * sense of the given bundle before one with a lower priority
 	 */
-	priority: number
+	priority: number;
 
 	/**
 	 * name: The friendly name of the project that this resolver resolves
 	 */
-	name: string
+	name: string;
 
 	/**
 	 * entry: Provide this resolver with a entry into a tar archive (the transport type
@@ -30,7 +30,7 @@ export interface Resolver {
 	 * @param file
 	 *	The contents and information about the file found.
 	 */
-	entry(file: FileInfo): void
+	entry(file: FileInfo): void;
 
 	/**
 	 * isSatisfied: Once all of the entries in the tar stream have been provided to
@@ -43,7 +43,7 @@ export interface Resolver {
 	 *	True if this resolver has enough information to produce a docker-compatible
 	 *	build artifact (normally Dockerfile)
 	 */
-	isSatisfied(bundle: Bundle): boolean
+	isSatisfied(bundle: Bundle): boolean;
 
 	/**
 	 * resolve: Once a resolver has reported itself as being satisfied with the input,
@@ -56,6 +56,5 @@ export interface Resolver {
 	 *	A promise of a list of files which when added to the bundle allow docker
 	 *	to build the bundle
 	 */
-	resolve(bundle: Bundle): Promise<FileInfo[]>
-
+	resolve(bundle: Bundle): Promise<FileInfo[]>;
 }

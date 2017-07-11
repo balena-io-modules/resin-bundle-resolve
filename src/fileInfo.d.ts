@@ -2,15 +2,15 @@ export interface FileInfo {
 	/**
 	 * name: The filename
 	 */
-	name: string
+	name: string;
 
 	/**
 	 * size: The filesize in bytes
 	 */
-	size: number
+	size: number;
 
 	/**
 	 * contents: The contents of the file
 	 */
-	contents: Buffer
+	contents: Buffer;
 }
