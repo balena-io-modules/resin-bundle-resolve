@@ -5,6 +5,7 @@
   "main": "build/index.js",
   "types": "src/index.ts",
   "scripts": {
+    "precommit": "prettier --use-tabs --single-quote --write \"{src,typings,test}/**/*.ts\"",
     "build": "gulp",
     "test": "mocha"
   },
@@ -27,7 +28,9 @@
     "gulp-sourcemaps": "^2.4.1",
     "gulp-typescript": "^3.1.5",
     "gulp-util": "^3.0.8",
+    "husky": "^0.14.3",
     "mocha": "^3.2.0",
+    "prettier": "^1.5.2",
     "ts-node": "^3.2.0",
     "typescript": "^2.1.6"
   },
