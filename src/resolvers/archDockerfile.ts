@@ -57,7 +57,7 @@ export default class ArchDockerfileResolver implements Resolver {
 		} else if (this.satisifiedArch !== undefined) {
 			satisfied = this.satisifiedArch;
 		} else {
-			throw new Error(
+			return Promise.reject(
 				'Resolve called without a satisfied architecture specific dockerfile'
 			);
 		}
