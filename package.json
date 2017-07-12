@@ -5,8 +5,7 @@
   "main": "build/index.js",
   "types": "src/index.ts",
   "scripts": {
-    "precommit": "npm run format && npm run build && git add build/",
-    "format": "prettier --use-tabs --single-quote --write \"{src,typings,test}/**/*.ts\"",
+    "precommit": "npm run build && git add build/",
     "build": "gulp",
     "test": "mocha"
   },
@@ -31,7 +30,6 @@
     "gulp-util": "^3.0.8",
     "husky": "^0.14.3",
     "mocha": "^3.2.0",
-    "prettier": "^1.5.2",
     "ts-node": "^3.2.0",
     "typescript": "^2.1.6"
   },
