@@ -7,12 +7,12 @@ const bundle_1 = require("./bundle");
 exports.Bundle = bundle_1.default;
 const Utils = require("./utils");
 // Import some default resolvers
+const archDockerfile_1 = require("./resolvers/archDockerfile");
+exports.ArchDockerfileResolver = archDockerfile_1.default;
 const dockerfile_1 = require("./resolvers/dockerfile");
 exports.DockerfileResolver = dockerfile_1.default;
 const dockerfileTemplate_1 = require("./resolvers/dockerfileTemplate");
 exports.DockerfileTemplateResolver = dockerfileTemplate_1.default;
-const archDockerfile_1 = require("./resolvers/archDockerfile");
-exports.ArchDockerfileResolver = archDockerfile_1.default;
 const nodeResolver_1 = require("./resolvers/nodeResolver");
 function resolveBundle(bundle, resolvers) {
     return new Promise((resolve, reject) => {
@@ -27,7 +27,7 @@ function resolveBundle(bundle, resolvers) {
                 const info = {
                     name: Utils.normalizeTarEntry(header.name),
                     size: header.size,
-                    contents: buffer
+                    contents: buffer,
                 };
                 // Now provide the resolvers with the information and file
                 resolvers.map(resolver => {
@@ -37,9 +37,9 @@ function resolveBundle(bundle, resolvers) {
             });
         });
         extract.on('finish', () => {
-            let maybeResolver = _(resolvers)
+            const maybeResolver = _(resolvers)
                 .orderBy((val) => val.priority, ['desc'])
-                .find((resolver) => resolver.isSatisfied(bundle));
+                .find((r) => r.isSatisfied(bundle));
             // if no resolver was happy this is an error
             if (maybeResolver === undefined) {
                 reject(new Error('No project type resolution could be performed'));
@@ -71,7 +71,7 @@ function resolveBundle(bundle, resolvers) {
                     pack.finalize();
                     resolve({
                         projectType: resolver.name,
-                        tarStream: pack
+                        tarStream: pack,
                     });
                 });
             })
@@ -89,7 +89,7 @@ function getDefaultResolvers() {
         new dockerfile_1.default(),
         new dockerfileTemplate_1.default(),
         new archDockerfile_1.default(),
-        new nodeResolver_1.default()
+        new nodeResolver_1.default(),
     ];
 }
 exports.getDefaultResolvers = getDefaultResolvers;

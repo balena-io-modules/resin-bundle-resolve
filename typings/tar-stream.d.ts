@@ -17,8 +17,7 @@ declare module 'tar-stream' {
 	export function extract(): NodeJS.ReadWriteStream;
 
 	export interface Pack extends NodeJS.ReadableStream {
-		entry(header: TarHeader, data: string): void;
-		entry(header: TarHeader, data: Buffer): void;
+		entry(header: TarHeader, data: string | Buffer): void;
 		entry(header: TarHeader, cb: (err: Error) => void): NodeJS.WritableStream;
 		finalize(): void;
 

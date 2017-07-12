@@ -8,6 +8,6 @@ declare module 'dockerfile-template' {
 
 	export function process(
 		content: string,
-		variables: TemplateVariables
+		variables: TemplateVariables,
 	): string;
 }

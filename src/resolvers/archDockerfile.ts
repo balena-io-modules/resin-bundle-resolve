@@ -58,7 +58,7 @@ export default class ArchDockerfileResolver implements Resolver {
 			satisfied = this.satisifiedArch;
 		} else {
 			return Promise.reject(
-				'Resolve called without a satisfied architecture specific dockerfile'
+				'Resolve called without a satisfied architecture specific dockerfile',
 			);
 		}
 
@@ -66,8 +66,8 @@ export default class ArchDockerfileResolver implements Resolver {
 			{
 				name: 'Dockerfile',
 				size: satisfied[1].size,
-				contents: satisfied[1].contents
-			}
+				contents: satisfied[1].contents,
+			},
 		]);
 	}
 }

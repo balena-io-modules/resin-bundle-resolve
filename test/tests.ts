@@ -2,8 +2,8 @@ import * as Promise from 'bluebird';
 import { assert, expect } from 'chai';
 import * as fs from 'fs';
 import * as mocha from 'mocha';
-import * as tar from 'tar-stream';
 import * as path from 'path';
+import * as tar from 'tar-stream';
 
 import * as Resolve from '../src/index';
 import * as Utils from '../src/utils';
@@ -28,21 +28,21 @@ function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 			'entry',
 			(
 				header: tar.TarHeader,
-				stream: NodeJS.ReadableStream,
-				next: () => void
+				entryStream: NodeJS.ReadableStream,
+				next: () => void,
 			) => {
 				if (path.normalize(header.name) === 'Dockerfile') {
 					let contents = '';
-					stream.on('data', (data: string) => {
+					entryStream.on('data', (data: string) => {
 						contents += data;
 					});
-					stream.on('end', () => {
+					entryStream.on('end', () => {
 						foundDockerfile = true;
 						resolve(contents);
 					});
 				}
 				next();
-			}
+			},
 		);
 
 		extract.on('finish', () => {
@@ -57,7 +57,7 @@ function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 describe('Resolvers', () => {
 	it('should return resolve a standard Dockerfile project', () => {
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/Dockerfile/archive.tar')
+			require.resolve('./test-files/Dockerfile/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, '', '');
@@ -65,7 +65,7 @@ describe('Resolvers', () => {
 		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
 			assert(
 				resolved.projectType === resolvers[dockerfileResolverIdx].name,
-				'Dockerfile resolver not used for Dockerfile project'
+				'Dockerfile resolver not used for Dockerfile project',
 			);
 		});
 	});
@@ -74,7 +74,7 @@ describe('Resolvers', () => {
 		const deviceType = 'device-type-test';
 		const arch = 'architecture-test';
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/DockerfileTemplate/archive.tar')
+			require.resolve('./test-files/DockerfileTemplate/archive.tar'),
 		);
 		const resolvers = defaultResolvers();
 		const name = resolvers[dockerfileTemplateResolverIdx].name;
@@ -83,7 +83,7 @@ describe('Resolvers', () => {
 		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
 			assert(
 				resolved.projectType === name,
-				'Dockerfile.template resolver not used for Dockerfile.template'
+				'Dockerfile.template resolver not used for Dockerfile.template',
 			);
 
 			// Parse the lines of the dockerfile
@@ -91,11 +91,11 @@ describe('Resolvers', () => {
 				const lines = contents.split(/\r?\n/);
 				assert(
 					lines[0] === `FROM resin/${deviceType}-node:slim`,
-					'%%RESIN_MACHINE_NAME%% not resolved correctly'
+					'%%RESIN_MACHINE_NAME%% not resolved correctly',
 				);
 				assert(
 					lines[1] === `RUN echo ${arch}`,
-					'%%RESIN_ARCH%% not resolved correctly'
+					'%%RESIN_ARCH%% not resolved correctly',
 				);
 			});
 		});
@@ -106,20 +106,20 @@ describe('Resolvers', () => {
 		const resolvers = defaultResolvers();
 		const name = resolvers[archDockerfileResolverIdx].name;
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/ArchitectureDockerfile/archive.tar')
+			require.resolve('./test-files/ArchitectureDockerfile/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, '', arch);
 		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
 			assert(
 				resolved.projectType === name,
-				'Architecture specific dockerfile resolver not used'
+				'Architecture specific dockerfile resolver not used',
 			);
 
 			return getDockerfileFromTarStream(resolved.tarStream).then(contents => {
 				assert(
 					contents.trim() === 'correct',
-					'Incorrect architecture chosen for project resolve'
+					'Incorrect architecture chosen for project resolve',
 				);
 			});
 		});
@@ -131,20 +131,20 @@ describe('Resolvers', () => {
 		const resolvers = defaultResolvers();
 		const name = resolvers[archDockerfileResolverIdx].name;
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/ArchPriority/archive.tar')
+			require.resolve('./test-files/ArchPriority/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, deviceType, arch);
 		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
 			assert(
 				resolved.projectType === name,
-				'Architecture specific dockerfile resolver not used'
+				'Architecture specific dockerfile resolver not used',
 			);
 
 			return getDockerfileFromTarStream(resolved.tarStream).then(contents => {
 				assert(
 					contents.trim() === 'correct',
-					'Device type dockerfile not priorities over arch'
+					'Device type dockerfile not priorities over arch',
 				);
 			});
 		});
@@ -154,7 +154,7 @@ describe('Resolvers', () => {
 		const resolvers = defaultResolvers();
 		const name = resolvers[dockerfileTemplateResolverIdx].name;
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/IncorrectTemplateMacros/archive.tar')
+			require.resolve('./test-files/IncorrectTemplateMacros/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, '', '');
@@ -173,21 +173,21 @@ describe('Resolvers', () => {
 		const deviceType = 'raspberrypi3';
 		const name = resolvers[nodeResolverIdx].name;
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/NodeProject/archive.tar')
+			require.resolve('./test-files/NodeProject/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, deviceType, arch);
 		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
 			assert(
 				resolved.projectType === name,
-				'Node resolver not used on node project'
+				'Node resolver not used on node project',
 			);
 
 			return getDockerfileFromTarStream(resolved.tarStream).then(contents => {
 				assert(
 					contents.trim().split(/\r?\n/)[0] ===
 						`FROM resin/${deviceType}-node:0.10.22-onbuild`,
-					'Node base image not used'
+					'Node base image not used',
 				);
 			});
 		});
@@ -201,7 +201,7 @@ describe('Hooks', () => {
 		const deviceType = 'dt';
 
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/Hooks/Template/archive.tar')
+			require.resolve('./test-files/Hooks/Template/archive.tar'),
 		);
 
 		const hook = (contents: string): Promise<void> => {
@@ -220,7 +220,7 @@ describe('Hooks', () => {
 		const deviceType = '';
 
 		const stream = fs.createReadStream(
-			require.resolve('./test-files/Hooks/Dockerfile/archive.tar')
+			require.resolve('./test-files/Hooks/Dockerfile/archive.tar'),
 		);
 
 		const hook = (contents: string): Promise<void> => {
