@@ -75,9 +75,7 @@ function resolveBundle(bundle, resolvers) {
                     });
                 });
             })
-                .catch((error) => {
-                reject(error);
-            });
+                .catch(reject);
         });
         // Send the bundle away to be parsed
         bundle.tarStream.pipe(extract);

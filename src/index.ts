@@ -112,9 +112,7 @@ export function resolveBundle(
 						});
 					});
 				})
-				.catch((error: Error) => {
-					reject(error);
-				});
+				.catch(reject);
 			});
 
 			// Send the bundle away to be parsed

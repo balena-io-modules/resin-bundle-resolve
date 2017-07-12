@@ -5,7 +5,8 @@
   "main": "build/index.js",
   "types": "src/index.ts",
   "scripts": {
-    "precommit": "npm run build && git add build/",
+    "precommit": "npm run lint && npm run build && git add build/",
+    "lint": "tslint '{src,typings,test}/**/*.ts'",
     "build": "gulp",
     "test": "mocha"
   },
@@ -31,6 +32,7 @@
     "husky": "^0.14.3",
     "mocha": "^3.2.0",
     "ts-node": "^3.2.0",
+    "tslint": "^5.5.0",
     "typescript": "^2.1.6"
   },
   "dependencies": {
