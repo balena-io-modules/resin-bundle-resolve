@@ -15,7 +15,7 @@ const versionCache = new BluebirdLRU({
         const get = (prev, url) => {
             return getAsync({
                 url,
-                json: true
+                json: true,
             })
                 .get(1)
                 .then((res) => {
@@ -31,7 +31,7 @@ const versionCache = new BluebirdLRU({
         };
         // 100 is the max page size
         return get([], `https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/?page_size=100`);
-    }
+    },
 });
 class NodeResolver {
     constructor() {
@@ -40,7 +40,7 @@ class NodeResolver {
         this.hasScripts = false;
     }
     entry(file) {
-        if (file.name == 'package.json') {
+        if (file.name === 'package.json') {
             this.packageJsonContent = file.contents;
         }
         else if (file.name === 'wscript' || _.endsWith(file.name, '.gyp')) {
@@ -98,7 +98,7 @@ class NodeResolver {
                 const file = {
                     name: 'Dockerfile',
                     size: dockerfile.length,
-                    contents: new Buffer(dockerfile)
+                    contents: new Buffer(dockerfile),
                 };
                 return [file];
             });

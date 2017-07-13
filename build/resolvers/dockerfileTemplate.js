@@ -21,12 +21,12 @@ class DockerfileTemplateResolver {
         const dockerfile = {
             name: 'Dockerfile',
             size: 0,
-            contents: new Buffer('')
+            contents: new Buffer(''),
         };
         // Generate the variables to replace
         const vars = {
             RESIN_ARCH: bundle.architecture,
-            RESIN_MACHINE_NAME: bundle.deviceType
+            RESIN_MACHINE_NAME: bundle.deviceType,
         };
         return new Promise(resolve => {
             // FIXME: submit a PR to DockerfileTemplate to take Buffers as an input

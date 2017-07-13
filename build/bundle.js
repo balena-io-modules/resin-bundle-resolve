@@ -9,8 +9,8 @@ class Bundle {
      * constructor: Initialise a resin-bundle with a tar archive stream
      *
      * @param tarStream
-     *	A readable stream which when consumed will produce a tar archive containing
-     *	a resin bundle
+     *  A readable stream which when consumed will produce a tar archive containing
+     *  a resin bundle
      * @param deviceType
      *  The machine name of the device that this resin bundle is currently targeting
      * @param architecture

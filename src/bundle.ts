@@ -29,8 +29,8 @@ export default class Bundle {
 	 * constructor: Initialise a resin-bundle with a tar archive stream
 	 *
 	 * @param tarStream
-	 *	A readable stream which when consumed will produce a tar archive containing
-	 *	a resin bundle
+	 *  A readable stream which when consumed will produce a tar archive containing
+	 *  a resin bundle
 	 * @param deviceType
 	 *  The machine name of the device that this resin bundle is currently targeting
 	 * @param architecture
@@ -40,7 +40,7 @@ export default class Bundle {
 		tarStream: NodeJS.ReadableStream,
 		deviceType: string,
 		architecture: string,
-		hook: (content: string) => Promise<void> = emptyHook
+		hook: (content: string) => Promise<void> = emptyHook,
 	) {
 		this.tarStream = tarStream;
 		this.deviceType = deviceType;

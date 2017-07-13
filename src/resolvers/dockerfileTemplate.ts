@@ -26,19 +26,19 @@ export default class DockerfileTemplateResolver implements Resolver {
 		const dockerfile: FileInfo = {
 			name: 'Dockerfile',
 			size: 0,
-			contents: new Buffer('')
+			contents: new Buffer(''),
 		};
 
 		// Generate the variables to replace
 		const vars: DockerfileTemplate.TemplateVariables = {
 			RESIN_ARCH: bundle.architecture,
-			RESIN_MACHINE_NAME: bundle.deviceType
+			RESIN_MACHINE_NAME: bundle.deviceType,
 		};
 
 		return new Promise<FileInfo[]>(resolve => {
 			// FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
 			dockerfile.contents = new Buffer(
-				DockerfileTemplate.process(this.templateContent.toString(), vars)
+				DockerfileTemplate.process(this.templateContent.toString(), vars),
 			);
 			dockerfile.size = dockerfile.contents.length;
 			resolve([dockerfile]);

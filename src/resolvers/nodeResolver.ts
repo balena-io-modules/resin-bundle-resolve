@@ -22,27 +22,27 @@ const versionCache: {
 		const get = (prev: string[], url: string): Promise<string[]> => {
 			return getAsync({
 				url,
-				json: true
+				json: true,
 			})
-				.get(1)
-				.then((res: { results: { name: string }[]; next?: string }) => {
-					const curr = _(res.results).map('name').filter(versionTest).value();
-					const tags = prev.concat(curr);
+			.get(1)
+			.then((res: { results: Array<{ name: string }>; next?: string }) => {
+				const curr = _(res.results).map('name').filter(versionTest).value();
+				const tags = prev.concat(curr);
 
-					if (res.next != null) {
-						return get(tags, res.next);
-					} else {
-						return tags;
-					}
-				});
+				if (res.next != null) {
+					return get(tags, res.next);
+				} else {
+					return tags;
+				}
+			});
 		};
 
 		// 100 is the max page size
 		return get(
 			[],
-			`https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/?page_size=100`
+			`https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/?page_size=100`,
 		);
-	}
+	},
 });
 
 export default class NodeResolver implements Resolver {
@@ -53,7 +53,7 @@ export default class NodeResolver implements Resolver {
 	private hasScripts = false;
 
 	public entry(file: FileInfo): void {
-		if (file.name == 'package.json') {
+		if (file.name === 'package.json') {
 			this.packageJsonContent = file.contents;
 		} else if (file.name === 'wscript' || _.endsWith(file.name, '.gyp')) {
 			this.hasScripts = true;
@@ -87,7 +87,7 @@ export default class NodeResolver implements Resolver {
 				const nodeEngine = _.get(packageJson, 'engines.node');
 				if (nodeEngine != null && !_.isString(nodeEngine)) {
 					throw new Error(
-						'package.json: engines.node must be a string if present'
+						'package.json: engines.node must be a string if present',
 					);
 				}
 				const range: string = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
@@ -118,7 +118,7 @@ export default class NodeResolver implements Resolver {
 					const file: FileInfo = {
 						name: 'Dockerfile',
 						size: dockerfile.length,
-						contents: new Buffer(dockerfile)
+						contents: new Buffer(dockerfile),
 					};
 					return [file];
 				});

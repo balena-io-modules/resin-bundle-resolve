@@ -51,8 +51,8 @@ class ArchDockerfileResolver {
             {
                 name: 'Dockerfile',
                 size: satisfied[1].size,
-                contents: satisfied[1].contents
-            }
+                contents: satisfied[1].contents,
+            },
         ]);
     }
 }

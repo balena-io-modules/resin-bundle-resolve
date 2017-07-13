@@ -28,7 +28,7 @@ export interface Resolver {
 	 * the contents of a Dockerfile.template.
 	 *
 	 * @param file
-	 *	The contents and information about the file found.
+	 *  The contents and information about the file found.
 	 */
 	entry(file: FileInfo): void;
 
@@ -40,8 +40,8 @@ export interface Resolver {
 	 * just a Dockerfile, but not limited to.
 	 *
 	 * @return
-	 *	True if this resolver has enough information to produce a docker-compatible
-	 *	build artifact (normally Dockerfile)
+	 *  True if this resolver has enough information to produce a docker-compatible
+	 *  build artifact (normally Dockerfile)
 	 */
 	isSatisfied(bundle: Bundle): boolean;
 
@@ -53,8 +53,8 @@ export interface Resolver {
 	 * @param bundle
 	 * 	The resin-bundle which will be resolved
 	 * @return
-	 *	A promise of a list of files which when added to the bundle allow docker
-	 *	to build the bundle
+	 *  A promise of a list of files which when added to the bundle allow docker
+	 *  to build the bundle
 	 */
 	resolve(bundle: Bundle): Promise<FileInfo[]>;
 }
