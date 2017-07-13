@@ -2,9 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const Promise = require("bluebird");
 const path = require("path");
+const DockerfileTemplate = require("dockerfile-template");
 class ArchDockerfileResolver {
     constructor() {
-        this.priority = 1;
+        this.priority = 3;
         this.name = 'Archicture-specific Dockerfile';
         this.archDockerfiles = [];
     }
@@ -47,13 +48,16 @@ class ArchDockerfileResolver {
         else {
             return Promise.reject('Resolve called without a satisfied architecture specific dockerfile');
         }
-        return Promise.resolve([
-            {
+        // Generate the variables to replace
+        const vars = {
+            RESIN_ARCH: bundle.architecture,
+            RESIN_MACHINE_NAME: bundle.deviceType,
+        };
+        return Promise.resolve([{
                 name: 'Dockerfile',
                 size: satisfied[1].size,
-                contents: satisfied[1].contents,
-            },
-        ]);
+                contents: new Buffer(DockerfileTemplate.process(satisfied[1].contents.toString(), vars)),
+            }]);
     }
 }
 exports.default = ArchDockerfileResolver;

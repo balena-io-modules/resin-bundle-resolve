@@ -19,6 +19,7 @@ const versionCache = new BluebirdLRU({
             })
                 .get(1)
                 .then((res) => {
+                // explicit casting here, as typescript interprets the following statement as {}[]
                 const curr = _(res.results).map('name').filter(versionTest).value();
                 const tags = prev.concat(curr);
                 if (res.next != null) {
