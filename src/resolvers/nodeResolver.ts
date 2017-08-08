@@ -26,7 +26,8 @@ const versionCache: {
 			})
 			.get(1)
 			.then((res: { results: Array<{ name: string }>; next?: string }) => {
-				const curr = _(res.results).map('name').filter(versionTest).value();
+				// explicit casting here, as typescript interprets the following statement as {}[]
+				const curr: string[] = _(res.results).map('name').filter(versionTest).value() as string[];
 				const tags = prev.concat(curr);
 
 				if (res.next != null) {

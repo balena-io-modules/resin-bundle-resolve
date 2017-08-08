@@ -2,6 +2,8 @@ import * as Promise from 'bluebird';
 import * as _ from 'lodash';
 import * as path from 'path';
 
+import * as DockerfileTemplate from 'dockerfile-template';
+
 import { Bundle, FileInfo, Resolver } from '../resolver';
 
 // Internal tuple to pass files and their extensions around
@@ -10,7 +12,7 @@ import { Bundle, FileInfo, Resolver } from '../resolver';
 type ArchSpecificDockerfile = [string, FileInfo];
 
 export default class ArchDockerfileResolver implements Resolver {
-	public priority = 1;
+	public priority = 3;
 	public name = 'Archicture-specific Dockerfile';
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
@@ -62,12 +64,16 @@ export default class ArchDockerfileResolver implements Resolver {
 			);
 		}
 
-		return Promise.resolve([
-			{
-				name: 'Dockerfile',
-				size: satisfied[1].size,
-				contents: satisfied[1].contents,
-			},
-		]);
+		// Generate the variables to replace
+		const vars: DockerfileTemplate.TemplateVariables = {
+			RESIN_ARCH: bundle.architecture,
+			RESIN_MACHINE_NAME: bundle.deviceType,
+		};
+
+		return Promise.resolve([{
+			name: 'Dockerfile',
+			size: satisfied[1].size,
+			contents: new Buffer(DockerfileTemplate.process(satisfied[1].contents.toString(), vars)),
+		}]);
 	}
 }
