@@ -14,7 +14,7 @@ class DockerfileTemplateResolver {
             this.hasDockerfileTemplate = true;
         }
     }
-    isSatisfied(bundle) {
+    isSatisfied(_bundle) {
         return this.hasDockerfileTemplate;
     }
     resolve(bundle) {
@@ -23,13 +23,11 @@ class DockerfileTemplateResolver {
             size: 0,
             contents: new Buffer(''),
         };
-        // Generate the variables to replace
         const vars = {
             RESIN_ARCH: bundle.architecture,
             RESIN_MACHINE_NAME: bundle.deviceType,
         };
         return new Promise(resolve => {
-            // FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
             dockerfile.contents = new Buffer(DockerfileTemplate.process(this.templateContent.toString(), vars));
             dockerfile.size = dockerfile.contents.length;
             resolve([dockerfile]);

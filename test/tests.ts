@@ -1,7 +1,6 @@
 import * as Promise from 'bluebird';
 import { assert, expect } from 'chai';
 import * as fs from 'fs';
-import * as mocha from 'mocha';
 import * as path from 'path';
 import * as tar from 'tar-stream';
 
@@ -176,14 +175,13 @@ describe('Resolvers', () => {
 
 	it('should handle incorrect template variables', () => {
 		const resolvers = defaultResolvers();
-		const name = resolvers[dockerfileTemplateResolverIdx].name;
 		const stream = fs.createReadStream(
 			require.resolve('./test-files/IncorrectTemplateMacros/archive.tar'),
 		);
 
 		const bundle = new Resolve.Bundle(stream, '', '');
 		return Resolve.resolveBundle(bundle, resolvers)
-			.then(resolved => {
+			.then(_resolved => {
 				assert(false, 'Incorrect template variables not throwing error');
 			})
 			.catch(() => {

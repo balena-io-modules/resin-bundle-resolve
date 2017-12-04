@@ -4,9 +4,8 @@ const Promise = require("bluebird");
 const _ = require("lodash");
 const request = require("request");
 const semver = require("semver");
-const getAsync = Promise.promisify(request.get, { multiArgs: true });
+const getAsync = Promise.promisify(request.get);
 const BluebirdLRU = require("bluebird-lru-cache");
-// Used below for when no engine version can be determined.
 const DEFAULT_NODE = '0.10.22';
 const versionTest = RegExp.prototype.test.bind(/^[0-9]+\.[0-9]+\.[0-9]+$/);
 const versionCache = new BluebirdLRU({
@@ -17,9 +16,8 @@ const versionCache = new BluebirdLRU({
                 url,
                 json: true,
             })
-                .get(1)
+                .get('body')
                 .then((res) => {
-                // explicit casting here, as typescript interprets the following statement as {}[]
                 const curr = _(res.results).map('name').filter(versionTest).value();
                 const tags = prev.concat(curr);
                 if (res.next != null) {
@@ -30,7 +28,6 @@ const versionCache = new BluebirdLRU({
                 }
             });
         };
-        // 100 is the max page size
         return get([], `https://hub.docker.com/v2/repositories/resin/${deviceType}-node/tags/?page_size=100`);
     },
 });
@@ -48,14 +45,10 @@ class NodeResolver {
             this.hasScripts = true;
         }
     }
-    isSatisfied(bundle) {
+    isSatisfied(_bundle) {
         return this.packageJsonContent != null;
     }
     resolve(bundle) {
-        // Generate a dockerfile which will run the file
-        // Use latest node base image. Don't use the slim image just in case
-        // TODO: Find out which apt-get packages are installed mostly with node
-        // base images.
         return Promise.try(() => JSON.parse(this.packageJsonContent.toString()))
             .catch((e) => {
             throw new Error(`package.json: ${e.message}`);
@@ -73,7 +66,7 @@ class NodeResolver {
             if (nodeEngine != null && !_.isString(nodeEngine)) {
                 throw new Error('package.json: engines.node must be a string if present');
             }
-            const range = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
+            const range = nodeEngine || DEFAULT_NODE;
             return versionCache.get(bundle.deviceType).then(versions => {
                 const nodeVersion = semver.maxSatisfying(versions, range);
                 if (nodeVersion == null) {

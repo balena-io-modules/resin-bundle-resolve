@@ -1,6 +1,6 @@
 import * as Promise from 'bluebird';
 
-import { Bundle, FileInfo, Resolver } from '../resolver';
+import { FileInfo, Resolver } from '../resolver';
 
 export default class DockerfileResolver implements Resolver {
 	public priority = 0;

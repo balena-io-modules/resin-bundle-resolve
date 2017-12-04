@@ -1,4 +1,5 @@
 declare module 'tar-stream' {
+	import * as Stream from 'stream';
 	export interface TarHeader {
 		name: string;
 		size: number;
@@ -14,14 +15,13 @@ declare module 'tar-stream' {
 		devminor?: number;
 	}
 
-	export function extract(): NodeJS.ReadWriteStream;
+	export function extract(): Stream.Duplex;
 
-	export interface Pack extends NodeJS.ReadableStream {
+	export interface Pack extends Stream.Readable {
 		entry(header: TarHeader, data: string | Buffer): void;
-		entry(header: TarHeader, cb: (err: Error) => void): NodeJS.WritableStream;
-		finalize(): void;
+		entry(header: TarHeader, cb: (err: Error) => void): Stream.Writable;
 
-		pipe(stream: NodeJS.WritableStream): NodeJS.ReadWriteStream;
+		finalize(): void;
 	}
 
 	export function pack(): Pack;

@@ -6,7 +6,6 @@ const tar = require("tar-stream");
 const bundle_1 = require("./bundle");
 exports.Bundle = bundle_1.default;
 const Utils = require("./utils");
-// Import some default resolvers
 const archDockerfile_1 = require("./resolvers/archDockerfile");
 exports.ArchDockerfileResolver = archDockerfile_1.default;
 const dockerfile_1 = require("./resolvers/dockerfile");
@@ -19,17 +18,13 @@ function resolveBundle(bundle, resolvers) {
         const extract = tar.extract();
         const pack = tar.pack();
         extract.on('entry', (header, stream, next) => {
-            // Read the contents into a buffer
             Utils.streamToBuffer(stream).then((buffer) => {
-                // send the file along to the next tar stream regardless
                 pack.entry(header, buffer);
-                // create a FileInfo from the header
                 const info = {
                     name: Utils.normalizeTarEntry(header.name),
                     size: header.size,
                     contents: buffer,
                 };
-                // Now provide the resolvers with the information and file
                 resolvers.map(resolver => {
                     resolver.entry(info);
                 });
@@ -40,13 +35,11 @@ function resolveBundle(bundle, resolvers) {
             const maybeResolver = _(resolvers)
                 .orderBy((val) => val.priority, ['desc'])
                 .find((r) => r.isSatisfied(bundle));
-            // if no resolver was happy this is an error
             if (maybeResolver === undefined) {
                 reject(new Error('No project type resolution could be performed'));
                 return;
             }
             const resolver = maybeResolver;
-            // Now that we have a resolver, add the new files needed to the stream
             resolver
                 .resolve(bundle)
                 .then(additionalItems => {
@@ -59,15 +52,11 @@ function resolveBundle(bundle, resolvers) {
                     .then(() => {
                     return Promise.try(() => {
                         if (resolver.name === 'Standard Dockerfile') {
-                            // The hook will not have been ran on this file yet, as the Dockerfile was not added
-                            // as an additional item
                             return bundle.callDockerfileHook(resolver.getDockerfileContents());
                         }
                     });
                 })
                     .then(() => {
-                    // all of the extra files have now been added to the stream, resolve
-                    // the promise with it
                     pack.finalize();
                     resolve({
                         projectType: resolver.name,
@@ -77,7 +66,6 @@ function resolveBundle(bundle, resolvers) {
             })
                 .catch(reject);
         });
-        // Send the bundle away to be parsed
         bundle.tarStream.pipe(extract);
     });
 }

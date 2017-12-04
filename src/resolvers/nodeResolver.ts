@@ -4,7 +4,7 @@ import * as _ from 'lodash';
 import * as request from 'request';
 import * as semver from 'semver';
 
-const getAsync = Promise.promisify(request.get, { multiArgs: true });
+const getAsync = Promise.promisify(request.get);
 
 import * as BluebirdLRU from 'bluebird-lru-cache';
 
@@ -24,7 +24,7 @@ const versionCache: {
 				url,
 				json: true,
 			})
-			.get(1)
+			.get('body')
 			.then((res: { results: Array<{ name: string }>; next?: string }) => {
 				// explicit casting here, as typescript interprets the following statement as {}[]
 				const curr: string[] = _(res.results).map('name').filter(versionTest).value() as string[];
@@ -61,7 +61,7 @@ export default class NodeResolver implements Resolver {
 		}
 	}
 
-	public isSatisfied(bundle: Bundle): boolean {
+	public isSatisfied(_bundle: Bundle): boolean {
 		return this.packageJsonContent != null;
 	}
 
