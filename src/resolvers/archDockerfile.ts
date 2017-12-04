@@ -1,5 +1,4 @@
 import * as Promise from 'bluebird';
-import * as _ from 'lodash';
 import * as path from 'path';
 
 import * as DockerfileTemplate from 'dockerfile-template';

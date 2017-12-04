@@ -1,7 +1,6 @@
 import * as Promise from 'bluebird';
-import * as _ from 'lodash';
 
-const emptyHook = (contents: string): Promise<void> => {
+const emptyHook = (_contents: string): Promise<void> => {
 	return Promise.resolve();
 };
 

@@ -18,7 +18,7 @@ export default class DockerfileTemplateResolver implements Resolver {
 		}
 	}
 
-	public isSatisfied(bundle: Bundle): boolean {
+	public isSatisfied(_bundle: Bundle): boolean {
 		return this.hasDockerfileTemplate;
 	}
 
