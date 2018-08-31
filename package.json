@@ -3,12 +3,14 @@
   "version": "0.5.3",
   "description": "Resolve resin-bundles into a docker daemon format",
   "main": "build/index.js",
-  "types": "src/index.ts",
+  "types": "build/index.d.ts",
   "scripts": {
-    "precommit": "npm run lint && npm run build && git add build/",
     "lint": "tslint '{src,typings,test}/**/*.ts'",
-    "build": "gulp",
-    "test": "mocha"
+    "clean": "rm -rf build",
+    "build": "npm run clean && gulp",
+    "test": "mocha",
+    "prepublish": "require-npm4-to-publish",
+    "prepublishOnly": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,7 @@
     "gulp-util": "^3.0.8",
     "husky": "^0.14.3",
     "mocha": "^3.2.0",
+    "require-npm4-to-publish": "^1.0.0",
     "ts-node": "^3.2.0",
     "tslint": "^5.5.0",
     "typescript": "^2.1.6"
@@ -41,9 +44,10 @@
     "@types/node": "^7.0.7",
     "@types/request": "0.0.45",
     "@types/semver": "^5.3.32",
+    "@types/tar-stream": "^1.6.0",
     "bluebird": "^3.4.7",
     "bluebird-lru-cache": "^1.0.0",
-    "dockerfile-template": "0.0.2",
+    "dockerfile-template": "0.1.0",
     "lodash": "^4.17.4",
     "request": "^2.81.0",
     "semver": "^5.3.0",

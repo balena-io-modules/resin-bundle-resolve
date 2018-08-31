@@ -26,7 +26,7 @@ function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 		extract.on(
 			'entry',
 			(
-				header: tar.TarHeader,
+				header: tar.Headers,
 				entryStream: NodeJS.ReadableStream,
 				next: () => void,
 			) => {
@@ -39,6 +39,8 @@ function getDockerfileFromTarStream(stream: tar.Pack): Promise<string> {
 						foundDockerfile = true;
 						resolve(contents);
 					});
+				} else {
+					entryStream.resume();
 				}
 				next();
 			},
