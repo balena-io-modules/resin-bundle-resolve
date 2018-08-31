@@ -42,7 +42,7 @@ export function resolveBundle(
 
 			extract.on('entry',
 				(
-					header: tar.TarHeader,
+					header: tar.Headers,
 					stream: NodeJS.ReadableStream,
 					next: () => void,
 				) => {
@@ -54,7 +54,7 @@ export function resolveBundle(
 						// create a FileInfo from the header
 						const info: FileInfo = {
 							name: Utils.normalizeTarEntry(header.name),
-							size: header.size,
+							size: header.size || 0,
 							contents: buffer,
 						};
 

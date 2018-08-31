@@ -41,6 +41,7 @@
     "@types/node": "^7.0.7",
     "@types/request": "0.0.45",
     "@types/semver": "^5.3.32",
+    "@types/tar-stream": "^1.6.0",
     "bluebird": "^3.4.7",
     "bluebird-lru-cache": "^1.0.0",
     "dockerfile-template": "0.1.0",
