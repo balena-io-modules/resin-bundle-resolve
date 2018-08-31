@@ -43,7 +43,7 @@
     "@types/semver": "^5.3.32",
     "bluebird": "^3.4.7",
     "bluebird-lru-cache": "^1.0.0",
-    "dockerfile-template": "0.0.2",
+    "dockerfile-template": "0.1.0",
     "lodash": "^4.17.4",
     "request": "^2.81.0",
     "semver": "^5.3.0",
