@@ -3,7 +3,7 @@
   "version": "0.5.3",
   "description": "Resolve resin-bundles into a docker daemon format",
   "main": "build/index.js",
-  "types": "src/index.ts",
+  "types": "build/index.d.ts",
   "scripts": {
     "precommit": "npm run lint && npm run build && git add build/",
     "lint": "tslint '{src,typings,test}/**/*.ts'",
