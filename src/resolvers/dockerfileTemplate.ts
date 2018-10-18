@@ -33,6 +33,8 @@ export default class DockerfileTemplateResolver implements Resolver {
 		const vars: DockerfileTemplate.TemplateVariables = {
 			RESIN_ARCH: bundle.architecture,
 			RESIN_MACHINE_NAME: bundle.deviceType,
+			BALENA_ARCH: bundle.architecture,
+			BALENA_MACHINE_NAME: bundle.deviceType,
 		};
 
 		return new Promise<FileInfo[]>(resolve => {
