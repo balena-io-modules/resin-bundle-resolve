@@ -102,6 +102,37 @@ describe('Resolvers', () => {
 		});
 	});
 
+	it('should resolve a balena Dockerfile.template correctly', () => {
+		const deviceType = 'device-type-test';
+		const arch = 'architecture-test';
+		const stream = fs.createReadStream(
+			require.resolve('./test-files/BalenaDockerfileTemplate/archive.tar'),
+		);
+		const resolvers = defaultResolvers();
+		const name = resolvers[dockerfileTemplateResolverIdx].name;
+
+		const bundle = new Resolve.Bundle(stream, deviceType, arch);
+		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
+			assert(
+				resolved.projectType === name,
+				'Dockerfile.template resolver not used for Dockerfile.template',
+			);
+
+			// Parse the lines of the dockerfile
+			return getDockerfileFromTarStream(resolved.tarStream).then(contents => {
+				const lines = contents.split(/\r?\n/);
+				assert(
+					lines[0] === `FROM resin/${deviceType}-node:slim`,
+					'%%BALENA_MACHINE_NAME%% not resolved correctly',
+				);
+				assert(
+					lines[1] === `RUN echo ${arch}`,
+					'%%BALENA_ARCH%% not resolved correctly',
+				);
+			});
+		});
+	});
+
 	it('should resolve an architecture specific dockerfile', () => {
 		const arch = 'i386';
 		const resolvers = defaultResolvers();

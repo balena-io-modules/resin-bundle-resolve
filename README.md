@@ -15,6 +15,8 @@ Currently default resolvers included are;
    * Resolve template variables with metadata, currently supported:
        * `%%RESIN_MACHINE_NAME%%`
        * `%%RESIN_ARCH%%`
+       * `%%BALENA_MACHINE_NAME%%`
+       * `%%BALENA_ARCH%%`
 * Architecture Specific Dockerfiles
    * Choose the correct Dockerfile for a given build architecture or device type
 * Standard Dockerfile projects
