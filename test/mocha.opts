@@ -1,3 +1,2 @@
---compilers ts:ts-node/register
 --timeout 180000
-test/tests.ts
+build/test/tests.js

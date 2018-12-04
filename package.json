@@ -5,14 +5,15 @@
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
 	"scripts": {
+		"clean": "rm -rf build",
+		"build": "npm run clean && tsc --project tsconfig.release.json",
+		"build:test": "npm run clean && tsc --project . && cp -r test/test-files build/test",
 		"lint": "resin-lint --typescript src/ test/ typings/ && tsc --noEmit",
 		"prettify": "prettier --config ./node_modules/resin-lint/config/.prettierrc --write \"{src,test,typings}/**/*.ts\"",
-		"clean": "rm -rf build",
-		"build": "npm run clean && gulp",
-		"test": "mocha",
+		"test": "npm run build:test && mocha",
 		"precommit": "lint-staged",
 		"prepublish": "require-npm4-to-publish",
-		"prepublishOnly": "npm run build && npm test"
+		"prepublishOnly": "npm test && npm run build"
 	},
 	"repository": {
 		"type": "git",
@@ -33,18 +34,12 @@
 		"@types/request": "0.0.45",
 		"@types/semver": "^5.3.32",
 		"chai": "^3.5.0",
-		"gulp": "^3.9.1",
-		"gulp-clean": "^0.3.2",
-		"gulp-sourcemaps": "^2.4.1",
-		"gulp-typescript": "^3.1.5",
-		"gulp-util": "^3.0.8",
 		"husky": "^0.14.3",
 		"lint-staged": "^8.1.0",
 		"mocha": "^3.2.0",
 		"prettier": "^1.15.3",
 		"require-npm4-to-publish": "^1.0.0",
 		"resin-lint": "^2.0.1",
-		"ts-node": "^3.2.0",
 		"tslint": "^5.5.0",
 		"typescript": "^2.1.6"
 	},
