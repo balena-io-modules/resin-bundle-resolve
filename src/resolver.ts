@@ -29,6 +29,11 @@ export interface Resolver {
 	allowSpecifiedDockerfile: boolean;
 
 	/**
+	 * dockerfileContent: The content of the resolved dockerfile
+	 */
+	dockerfileContents: string;
+
+	/**
 	 * entry: Provide this resolver with a entry into a tar archive (the transport type
 	 * of a resin-bundle) and the resolver should save the contents if it is applicable
 	 * to this type of resolver. For example a Dockerfile.template resolver should save

@@ -14,6 +14,7 @@ export class ArchDockerfileResolver implements Resolver {
 	public priority = 3;
 	public name = 'Archicture-specific Dockerfile';
 	public allowSpecifiedDockerfile = true;
+	public dockerfileContents: string;
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
 	private satisifiedArch: ArchSpecificDockerfile;
@@ -72,13 +73,16 @@ export class ArchDockerfileResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 		};
 
+		this.dockerfileContents = DockerfileTemplate.process(
+			satisfied[1].contents.toString(),
+			vars,
+		);
+
 		return Promise.resolve([
 			{
 				name: 'Dockerfile',
 				size: satisfied[1].size,
-				contents: new Buffer(
-					DockerfileTemplate.process(satisfied[1].contents.toString(), vars),
-				),
+				contents: new Buffer(this.dockerfileContents),
 			},
 		]);
 	}

@@ -9,6 +9,7 @@ export class DockerfileTemplateResolver implements Resolver {
 	public priority = 2;
 	public name = 'Dockerfile.template';
 	public allowSpecifiedDockerfile = true;
+	public dockerfileContents: string;
 
 	private hasDockerfileTemplate = false;
 	private templateContent: Buffer;
@@ -42,11 +43,14 @@ export class DockerfileTemplateResolver implements Resolver {
 			BALENA_MACHINE_NAME: bundle.deviceType,
 		};
 
+		this.dockerfileContents = DockerfileTemplate.process(
+			this.templateContent.toString(),
+			vars,
+		);
+
 		return new Promise<FileInfo[]>(resolve => {
 			// FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
-			dockerfile.contents = new Buffer(
-				DockerfileTemplate.process(this.templateContent.toString(), vars),
-			);
+			dockerfile.contents = new Buffer(this.dockerfileContents);
 			dockerfile.size = dockerfile.contents.length;
 			resolve([dockerfile]);
 		});

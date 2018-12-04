@@ -8,12 +8,9 @@ export class DockerfileResolver implements Resolver {
 	public priority = 0;
 	public name = 'Standard Dockerfile';
 	public allowSpecifiedDockerfile = true;
+	public dockerfileContents: string;
 
 	private gotDockerfile: boolean = false;
-	// Storing the contents of the Dockerfile allows us to
-	// call the hook on it, without traversing the new tar
-	// stream
-	private dockerfileContents: string;
 
 	public entry(file: FileInfo): void {
 		this.gotDockerfile = true;

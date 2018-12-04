@@ -32,6 +32,7 @@ const versionCache: {
 						.filter(versionTest)
 						.value() as string[];
 					const tags = prev.concat(curr);
+					console.log(`Trying ${res.next}`);
 
 					if (res.next != null) {
 						return get(tags, res.next);
@@ -53,6 +54,7 @@ export class NodeResolver implements Resolver {
 	public priority = 0;
 	public name = 'NodeJS';
 	public allowSpecifiedDockerfile = false;
+	public dockerfileContents: string;
 
 	private packageJsonContent?: Buffer;
 	private hasScripts = false;
@@ -128,6 +130,7 @@ export class NodeResolver implements Resolver {
 						RUN ln -s /usr/src/app /app
 					`;
 					}
+					this.dockerfileContents = dockerfile;
 					const file: FileInfo = {
 						name: 'Dockerfile',
 						size: dockerfile.length,
