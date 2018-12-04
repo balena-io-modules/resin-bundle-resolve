@@ -1,10 +1,13 @@
 import * as Promise from 'bluebird';
 
+import { Bundle } from '../bundle';
 import { FileInfo, Resolver } from '../resolver';
+import { removeExtension } from '../utils';
 
-export default class DockerfileResolver implements Resolver {
+export class DockerfileResolver implements Resolver {
 	public priority = 0;
 	public name = 'Standard Dockerfile';
+	public allowSpecifiedDockerfile = true;
 
 	private gotDockerfile: boolean = false;
 	// Storing the contents of the Dockerfile allows us to
@@ -13,11 +16,11 @@ export default class DockerfileResolver implements Resolver {
 	private dockerfileContents: string;
 
 	public entry(file: FileInfo): void {
-		if (file.name === 'Dockerfile') {
-			this.gotDockerfile = true;
-			this.dockerfileContents = file.contents.toString();
-		}
+		this.gotDockerfile = true;
+		this.dockerfileContents = file.contents.toString();
 	}
+
+	public needsEntry = (filename: string): boolean => filename === 'Dockerfile';
 
 	public isSatisfied(): boolean {
 		return this.gotDockerfile;
@@ -31,4 +34,11 @@ export default class DockerfileResolver implements Resolver {
 	public getDockerfileContents(): string {
 		return this.dockerfileContents;
 	}
+
+	public getCanonicalName(filename: string): string {
+		// All that needs to be done for this class of Dockerfile is to remove the .template
+		return filename;
+	}
 }
+
+export default DockerfileResolver;

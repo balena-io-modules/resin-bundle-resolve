@@ -34,3 +34,7 @@ export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 		stream.on('error', reject);
 	});
 }
+
+export function removeExtension(filename: string): string {
+	return path.basename(filename, path.extname(filename));
+}

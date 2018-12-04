@@ -3,28 +3,33 @@ import * as Promise from 'bluebird';
 import * as DockerfileTemplate from 'dockerfile-template';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
+import { removeExtension } from '../utils';
 
-export default class DockerfileTemplateResolver implements Resolver {
+export class DockerfileTemplateResolver implements Resolver {
 	public priority = 2;
 	public name = 'Dockerfile.template';
+	public allowSpecifiedDockerfile = true;
 
 	private hasDockerfileTemplate = false;
 	private templateContent: Buffer;
 
 	public entry(file: FileInfo): void {
-		if (file.name === 'Dockerfile.template') {
-			this.templateContent = file.contents;
-			this.hasDockerfileTemplate = true;
-		}
+		this.templateContent = file.contents;
+		this.hasDockerfileTemplate = true;
 	}
+
+	public needsEntry = (filename: string) => filename === 'Dockerfile.template';
 
 	public isSatisfied(_bundle: Bundle): boolean {
 		return this.hasDockerfileTemplate;
 	}
 
-	public resolve(bundle: Bundle): Promise<FileInfo[]> {
+	public resolve(
+		bundle: Bundle,
+		specifiedFilename: string = 'Dockerfile',
+	): Promise<FileInfo[]> {
 		const dockerfile: FileInfo = {
-			name: 'Dockerfile',
+			name: specifiedFilename,
 			size: 0,
 			contents: new Buffer(''),
 		};
@@ -46,4 +51,11 @@ export default class DockerfileTemplateResolver implements Resolver {
 			resolve([dockerfile]);
 		});
 	}
+
+	public getCanonicalName(filename: string): string {
+		// All that needs to be done for this class of Dockerfile is to remove the extension
+		return removeExtension(filename);
+	}
 }
+
+export default DockerfileTemplateResolver;

@@ -49,9 +49,10 @@ const versionCache: {
 	},
 });
 
-export default class NodeResolver implements Resolver {
+export class NodeResolver implements Resolver {
 	public priority = 0;
 	public name = 'NodeJS';
+	public allowSpecifiedDockerfile = false;
 
 	private packageJsonContent?: Buffer;
 	private hasScripts = false;
@@ -62,6 +63,14 @@ export default class NodeResolver implements Resolver {
 		} else if (file.name === 'wscript' || _.endsWith(file.name, '.gyp')) {
 			this.hasScripts = true;
 		}
+	}
+
+	public needsEntry(filename: string): boolean {
+		return (
+			filename === 'package.json' ||
+			filename === 'wscript' ||
+			_.endsWith(filename, '.gyp')
+		);
 	}
 
 	public isSatisfied(_bundle: Bundle): boolean {
@@ -128,4 +137,10 @@ export default class NodeResolver implements Resolver {
 				});
 			});
 	}
+
+	public getCanonicalName(): string {
+		throw new Error('getCanonicalName called on unsupported resolver NodeJS');
+	}
 }
+
+export default NodeResolver;

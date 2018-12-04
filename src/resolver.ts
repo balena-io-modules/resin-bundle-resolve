@@ -22,6 +22,13 @@ export interface Resolver {
 	name: string;
 
 	/**
+	 * allowSpecifiedDockerfile: Can this resolver accept a specific
+	 * file to be used as the Dockerfile. This makes sense for normal
+	 * Dockerfile and .template projects, but not package.json projects
+	 */
+	allowSpecifiedDockerfile: boolean;
+
+	/**
 	 * entry: Provide this resolver with a entry into a tar archive (the transport type
 	 * of a resin-bundle) and the resolver should save the contents if it is applicable
 	 * to this type of resolver. For example a Dockerfile.template resolver should save
@@ -31,6 +38,14 @@ export interface Resolver {
 	 *  The contents and information about the file found.
 	 */
 	entry(file: FileInfo): void;
+
+	/**
+	 * needsEntry: Should this resolve get the content of this file
+	 * @param filename The name of the file in the tar archive
+	 * @return
+	 *  True if the entry function should be called with this file
+	 */
+	needsEntry(filename: string): boolean;
 
 	/**
 	 * isSatisfied: Once all of the entries in the tar stream have been provided to
@@ -56,5 +71,13 @@ export interface Resolver {
 	 *  A promise of a list of files which when added to the bundle allow docker
 	 *  to build the bundle
 	 */
-	resolve(bundle: Bundle): Promise<FileInfo[]>;
+	resolve(bundle: Bundle, specifiedPath?: string): Promise<FileInfo[]>;
+
+	/**
+	 * getCanonicalName: If this resolver supports specifying a path as the main
+	 * file to resolve from, this function will return the canonical path of the
+	 * resolved dockerfile, for example:
+	 * getCanonicalName('./build/Dockerfile.template') => './build/Dockerfile'
+	 */
+	getCanonicalName(specifiedPath: string): string;
 }

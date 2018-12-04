@@ -10,25 +10,28 @@ import { Bundle, FileInfo, Resolver } from '../resolver';
 // ArchSpecificDockerfile = [extension, file info]
 type ArchSpecificDockerfile = [string, FileInfo];
 
-export default class ArchDockerfileResolver implements Resolver {
+export class ArchDockerfileResolver implements Resolver {
 	public priority = 3;
 	public name = 'Archicture-specific Dockerfile';
+	public allowSpecifiedDockerfile = true;
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
 	private satisifiedArch: ArchSpecificDockerfile;
 	private satisfiedDeviceType: ArchSpecificDockerfile;
 
 	public entry(file: FileInfo): void {
-		if (file.name.substr(0, file.name.indexOf('.')) === 'Dockerfile') {
-			// If it's a dockerfile with an extension, save it
-			// unless it's a Dockerfile.template, in which case don't
+		// We know that this file is a Dockerfile, so just get the extension,
+		// and save it for resolving later
+		const ext = path.extname(file.name).substr(1);
+		this.archDockerfiles.push([ext, file]);
+	}
 
-			// Remove the . from the start of the extension
-			const ext = path.extname(file.name).substr(1);
-			if (ext !== 'template') {
-				this.archDockerfiles.push([ext, file]);
-			}
+	public needsEntry(filename: string): boolean {
+		if (filename.substr(0, filename.indexOf('.')) === 'Dockerfile') {
+			const ext = path.extname(filename);
+			return ext !== 'template';
 		}
+		return false;
 	}
 
 	public isSatisfied(bundle: Bundle): boolean {
@@ -79,4 +82,11 @@ export default class ArchDockerfileResolver implements Resolver {
 			},
 		]);
 	}
+
+	public getCanonicalName(filename: string): string {
+		// All that needs to be done for this class of Dockerfile is to remove the .template
+		return filename;
+	}
 }
+
+export default ArchDockerfileResolver;
