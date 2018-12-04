@@ -161,24 +161,21 @@ describe('Resolvers', () => {
 		const arch = 'i386';
 		const resolvers = defaultResolvers();
 		const name = resolvers[archDockerfileResolverIdx].name;
-		const stream = fs.createReadStream('./test/test-files/ArchTemplatePriority/archive.tar');
+		const stream = fs.createReadStream(
+			'./test/test-files/ArchTemplatePriority/archive.tar',
+		);
 
 		const bundle = new Resolve.Bundle(stream, '', arch);
-		return Resolve.resolveBundle(bundle, resolvers)
-			.then((resolved) => {
-				assert(
-					resolved.projectType === name,
-					'Architecture specific Dockerfile not given priority over template',
-				);
+		return Resolve.resolveBundle(bundle, resolvers).then(resolved => {
+			assert(
+				resolved.projectType === name,
+				'Architecture specific Dockerfile not given priority over template',
+			);
 
-				return getDockerfileFromTarStream(resolved.tarStream)
-					.then((contents) => {
-						assert(
-							contents.trim() === arch,
-							'Dockerfile value not correct',
-						);
-					});
+			return getDockerfileFromTarStream(resolved.tarStream).then(contents => {
+				assert(contents.trim() === arch, 'Dockerfile value not correct');
 			});
+		});
 	});
 
 	it('should prioritise device type over architecture dockerfiles', () => {

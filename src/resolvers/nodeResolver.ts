@@ -24,18 +24,21 @@ const versionCache: {
 				url,
 				json: true,
 			})
-			.get('body')
-			.then((res: { results: Array<{ name: string }>; next?: string }) => {
-				// explicit casting here, as typescript interprets the following statement as {}[]
-				const curr: string[] = _(res.results).map('name').filter(versionTest).value() as string[];
-				const tags = prev.concat(curr);
+				.get('body')
+				.then((res: { results: Array<{ name: string }>; next?: string }) => {
+					// explicit casting here, as typescript interprets the following statement as {}[]
+					const curr: string[] = _(res.results)
+						.map('name')
+						.filter(versionTest)
+						.value() as string[];
+					const tags = prev.concat(curr);
 
-				if (res.next != null) {
-					return get(tags, res.next);
-				} else {
-					return tags;
-				}
-			});
+					if (res.next != null) {
+						return get(tags, res.next);
+					} else {
+						return tags;
+					}
+				});
 		};
 
 		// 100 is the max page size

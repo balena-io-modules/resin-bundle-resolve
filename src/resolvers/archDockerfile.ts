@@ -69,10 +69,14 @@ export default class ArchDockerfileResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 		};
 
-		return Promise.resolve([{
-			name: 'Dockerfile',
-			size: satisfied[1].size,
-			contents: new Buffer(DockerfileTemplate.process(satisfied[1].contents.toString(), vars)),
-		}]);
+		return Promise.resolve([
+			{
+				name: 'Dockerfile',
+				size: satisfied[1].size,
+				contents: new Buffer(
+					DockerfileTemplate.process(satisfied[1].contents.toString(), vars),
+				),
+			},
+		]);
 	}
 }

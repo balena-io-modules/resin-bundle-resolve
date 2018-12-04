@@ -40,7 +40,8 @@ export function resolveBundle(
 			const extract = tar.extract();
 			const pack = tar.pack();
 
-			extract.on('entry',
+			extract.on(
+				'entry',
 				(
 					header: tar.Headers,
 					stream: NodeJS.ReadableStream,
@@ -82,37 +83,37 @@ export function resolveBundle(
 
 				// Now that we have a resolver, add the new files needed to the stream
 				resolver
-				.resolve(bundle)
-				.then(additionalItems => {
-					return Promise.map(additionalItems, (file: FileInfo) => {
-						pack.entry({ name: file.name, size: file.size }, file.contents);
-						if (file.name === 'Dockerfile') {
-							return bundle.callDockerfileHook(file.contents.toString());
-						}
-					})
-					.then(() => {
-						return Promise.try(() => {
-							if (resolver.name === 'Standard Dockerfile') {
-								// The hook will not have been ran on this file yet, as the Dockerfile was not added
-								// as an additional item
-								return bundle.callDockerfileHook(
-									(resolver as DockerfileResolver).getDockerfileContents(),
-								);
+					.resolve(bundle)
+					.then(additionalItems => {
+						return Promise.map(additionalItems, (file: FileInfo) => {
+							pack.entry({ name: file.name, size: file.size }, file.contents);
+							if (file.name === 'Dockerfile') {
+								return bundle.callDockerfileHook(file.contents.toString());
 							}
-						});
-					})
-					.then(() => {
-						// all of the extra files have now been added to the stream, resolve
-						// the promise with it
-						pack.finalize();
+						})
+							.then(() => {
+								return Promise.try(() => {
+									if (resolver.name === 'Standard Dockerfile') {
+										// The hook will not have been ran on this file yet, as the Dockerfile was not added
+										// as an additional item
+										return bundle.callDockerfileHook(
+											(resolver as DockerfileResolver).getDockerfileContents(),
+										);
+									}
+								});
+							})
+							.then(() => {
+								// all of the extra files have now been added to the stream, resolve
+								// the promise with it
+								pack.finalize();
 
-						resolve({
-							projectType: resolver.name,
-							tarStream: pack,
-						});
-					});
-				})
-				.catch(reject);
+								resolve({
+									projectType: resolver.name,
+									tarStream: pack,
+								});
+							});
+					})
+					.catch(reject);
 			});
 
 			// Send the bundle away to be parsed
