@@ -19,16 +19,18 @@ export default class ArchDockerfileResolver implements Resolver {
 	private satisfiedDeviceType: ArchSpecificDockerfile;
 
 	public entry(file: FileInfo): void {
-		if (file.name.substr(0, file.name.indexOf('.')) === 'Dockerfile') {
-			// If it's a dockerfile with an extension, save it
-			// unless it's a Dockerfile.template, in which case don't
+		// We know that this file is a Dockerfile, so just get the extension,
+		// and save it for resolving later
+		const ext = path.extname(file.name).substr(1);
+		this.archDockerfiles.push([ext, file]);
+	}
 
-			// Remove the . from the start of the extension
-			const ext = path.extname(file.name).substr(1);
-			if (ext !== 'template') {
-				this.archDockerfiles.push([ext, file]);
-			}
+	public needsEntry(filename: string): boolean {
+		if (filename.substr(0, filename.indexOf('.')) === 'Dockerfile') {
+			const ext = path.extname(filename);
+			return ext !== 'template';
 		}
+		return false;
 	}
 
 	public isSatisfied(bundle: Bundle): boolean {
@@ -69,10 +71,14 @@ export default class ArchDockerfileResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 		};
 
-		return Promise.resolve([{
-			name: 'Dockerfile',
-			size: satisfied[1].size,
-			contents: new Buffer(DockerfileTemplate.process(satisfied[1].contents.toString(), vars)),
-		}]);
+		return Promise.resolve([
+			{
+				name: 'Dockerfile',
+				size: satisfied[1].size,
+				contents: new Buffer(
+					DockerfileTemplate.process(satisfied[1].contents.toString(), vars),
+				),
+			},
+		]);
 	}
 }

@@ -40,30 +40,36 @@ export function resolveBundle(
 			const extract = tar.extract();
 			const pack = tar.pack();
 
-			extract.on('entry',
+			extract.on(
+				'entry',
 				(
 					header: tar.Headers,
 					stream: NodeJS.ReadableStream,
 					next: () => void,
 				) => {
-					// Read the contents into a buffer
-					Utils.streamToBuffer(stream).then((buffer: Buffer) => {
-						// send the file along to the next tar stream regardless
-						pack.entry(header, buffer);
+					const name = Utils.normalizeTarEntry(header.name);
+					const resolversInterested = resolvers.filter(r => r.needsEntry(name));
 
-						// create a FileInfo from the header
-						const info: FileInfo = {
-							name: Utils.normalizeTarEntry(header.name),
-							size: header.size || 0,
-							contents: buffer,
-						};
+					if (resolversInterested.length > 0) {
+						// Read the contents into a buffer
+						Utils.streamToBuffer(stream).then((buffer: Buffer) => {
+							// send the file along to the next tar stream regardless
+							pack.entry(header, buffer);
 
-						// Now provide the resolvers with the information and file
-						resolvers.map(resolver => {
-							resolver.entry(info);
+							// create a FileInfo from the header
+							const info: FileInfo = {
+								name: Utils.normalizeTarEntry(name),
+								size: header.size || 0,
+								contents: buffer,
+							};
+							// Now provide the resolvers with the information and file
+							resolversInterested.map(r => r.entry(info));
+							next();
 						});
-						next();
-					});
+					} else {
+						stream.pipe(pack.entry(header));
+						stream.on('end', next);
+					}
 				},
 			);
 

@@ -13,11 +13,11 @@ export default class DockerfileResolver implements Resolver {
 	private dockerfileContents: string;
 
 	public entry(file: FileInfo): void {
-		if (file.name === 'Dockerfile') {
-			this.gotDockerfile = true;
-			this.dockerfileContents = file.contents.toString();
-		}
+		this.gotDockerfile = true;
+		this.dockerfileContents = file.contents.toString();
 	}
+
+	public needsEntry = (filename: string): boolean => filename === 'Dockerfile';
 
 	public isSatisfied(): boolean {
 		return this.gotDockerfile;

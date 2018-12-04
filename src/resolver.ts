@@ -33,6 +33,14 @@ export interface Resolver {
 	entry(file: FileInfo): void;
 
 	/**
+	 * needsEntry: Should this resolve get the content of this file
+	 * @param filename The name of the file in the tar archive
+	 * @return
+	 *  True if the entry function should be called with this file
+	 */
+	needsEntry(filename: string): boolean;
+
+	/**
 	 * isSatisfied: Once all of the entries in the tar stream have been provided to
 	 * the resolvers, the isSatisfied function will be called in order of priority.
 	 * If a resolver returns true, that resolver will then be used to populate the

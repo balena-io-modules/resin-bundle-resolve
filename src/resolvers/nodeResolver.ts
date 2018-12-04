@@ -61,6 +61,14 @@ export default class NodeResolver implements Resolver {
 		}
 	}
 
+	public needsEntry(filename: string): boolean {
+		return (
+			filename === 'package.json' ||
+			filename === 'wscript' ||
+			_.endsWith(filename, '.gyp')
+		);
+	}
+
 	public isSatisfied(_bundle: Bundle): boolean {
 		return this.packageJsonContent != null;
 	}

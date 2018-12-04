@@ -12,11 +12,11 @@ export default class DockerfileTemplateResolver implements Resolver {
 	private templateContent: Buffer;
 
 	public entry(file: FileInfo): void {
-		if (file.name === 'Dockerfile.template') {
-			this.templateContent = file.contents;
-			this.hasDockerfileTemplate = true;
-		}
+		this.templateContent = file.contents;
+		this.hasDockerfileTemplate = true;
 	}
+
+	public needsEntry = (filename: string) => filename === 'Dockerfile.template';
 
 	public isSatisfied(_bundle: Bundle): boolean {
 		return this.hasDockerfileTemplate;
