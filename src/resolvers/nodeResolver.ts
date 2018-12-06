@@ -1,10 +1,10 @@
-import * as Promise from 'bluebird';
+import * as Bluebird from 'bluebird';
 
 import * as _ from 'lodash';
 import * as request from 'request';
 import * as semver from 'semver';
 
-const getAsync = Promise.promisify(request.get);
+const getAsync = Bluebird.promisify(request.get);
 
 import * as BluebirdLRU from 'bluebird-lru-cache';
 
@@ -20,26 +20,28 @@ const versionCache: {
 	maxAge: 3600 * 1000, // 1 hour
 	fetchFn: (deviceType: string) => {
 		const get = (prev: string[], url: string): Promise<string[]> => {
-			return getAsync({
-				url,
-				json: true,
-			})
-				.get('body')
-				.then((res: { results: Array<{ name: string }>; next?: string }) => {
-					// explicit casting here, as typescript interprets the following statement as {}[]
-					const curr: string[] = _(res.results)
-						.map('name')
-						.filter(versionTest)
-						.value() as string[];
-					const tags = prev.concat(curr);
-					console.log(`Trying ${res.next}`);
+			return Promise.resolve(
+				getAsync({
+					url,
+					json: true,
+				})
+					.get('body')
+					.then((res: { results: Array<{ name: string }>; next?: string }) => {
+						// explicit casting here, as typescript interprets the following statement as {}[]
+						const curr: string[] = _(res.results)
+							.map('name')
+							.filter(versionTest)
+							.value() as string[];
+						const tags = prev.concat(curr);
+						console.log(`Trying ${res.next}`);
 
-					if (res.next != null) {
-						return get(tags, res.next);
-					} else {
-						return tags;
-					}
-				});
+						if (res.next != null) {
+							return get(tags, res.next);
+						} else {
+							return tags;
+						}
+					}),
+			);
 		};
 
 		// 100 is the max page size
@@ -84,39 +86,40 @@ export class NodeResolver implements Resolver {
 		// Use latest node base image. Don't use the slim image just in case
 		// TODO: Find out which apt-get packages are installed mostly with node
 		// base images.
-		return Promise.try(() => JSON.parse(this.packageJsonContent!.toString()))
-			.catch((e: Error) => {
-				throw new Error(`package.json: ${e.message}`);
-			})
-			.then(packageJson => {
-				if (!_.isObject(packageJson)) {
-					throw new Error('package.json: must be a JSON object');
-				}
-
-				this.hasScripts =
-					this.hasScripts ||
-					_(packageJson.scripts)
-						.pick('preinstall', 'install', 'postinstall')
-						.size() > 0;
-
-				const nodeEngine = _.get(packageJson, 'engines.node');
-				if (nodeEngine != null && !_.isString(nodeEngine)) {
-					throw new Error(
-						'package.json: engines.node must be a string if present',
-					);
-				}
-				const range: string = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
-
-				return versionCache.get(bundle.deviceType).then(versions => {
-					const nodeVersion = semver.maxSatisfying(versions, range);
-
-					if (nodeVersion == null) {
-						throw new Error(`Couldn't satisfy node version ${range}`);
+		return Promise.resolve(
+			Bluebird.try(() => JSON.parse(this.packageJsonContent!.toString()))
+				.catch((e: Error) => {
+					throw new Error(`package.json: ${e.message}`);
+				})
+				.then(packageJson => {
+					if (!_.isObject(packageJson)) {
+						throw new Error('package.json: must be a JSON object');
 					}
 
-					let dockerfile: string;
-					if (this.hasScripts) {
-						dockerfile = `
+					this.hasScripts =
+						this.hasScripts ||
+						_(packageJson.scripts)
+							.pick('preinstall', 'install', 'postinstall')
+							.size() > 0;
+
+					const nodeEngine = _.get(packageJson, 'engines.node');
+					if (nodeEngine != null && !_.isString(nodeEngine)) {
+						throw new Error(
+							'package.json: engines.node must be a string if present',
+						);
+					}
+					const range: string = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
+
+					return versionCache.get(bundle.deviceType).then(versions => {
+						const nodeVersion = semver.maxSatisfying(versions, range);
+
+						if (nodeVersion == null) {
+							throw new Error(`Couldn't satisfy node version ${range}`);
+						}
+
+						let dockerfile: string;
+						if (this.hasScripts) {
+							dockerfile = `
 						FROM resin/${bundle.deviceType}-node:${nodeVersion}
 						RUN mkdir -p /usr/src/app && ln -s /usr/src/app /app
 						WORKDIR /usr/src/app
@@ -124,21 +127,22 @@ export class NodeResolver implements Resolver {
 						RUN DEBIAN_FRONTEND=noninteractive JOBS=MAX npm install --unsafe-perm
 						CMD [ "npm", "start" ]
 						`;
-					} else {
-						dockerfile = `
+						} else {
+							dockerfile = `
 						FROM resin/${bundle.deviceType}-node:${nodeVersion}-onbuild
 						RUN ln -s /usr/src/app /app
 					`;
-					}
-					this.dockerfileContents = dockerfile;
-					const file: FileInfo = {
-						name: 'Dockerfile',
-						size: dockerfile.length,
-						contents: new Buffer(dockerfile),
-					};
-					return [file];
-				});
-			});
+						}
+						this.dockerfileContents = dockerfile;
+						const file: FileInfo = {
+							name: 'Dockerfile',
+							size: dockerfile.length,
+							contents: new Buffer(dockerfile),
+						};
+						return [file];
+					});
+				}),
+		);
 	}
 
 	public getCanonicalName(): string {

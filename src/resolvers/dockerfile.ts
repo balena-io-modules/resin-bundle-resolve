@@ -1,4 +1,4 @@
-import * as Promise from 'bluebird';
+import * as path from 'path';
 
 import { Bundle } from '../bundle';
 import { FileInfo, Resolver } from '../resolver';
@@ -17,7 +17,9 @@ export class DockerfileResolver implements Resolver {
 		this.dockerfileContents = file.contents.toString();
 	}
 
-	public needsEntry = (filename: string): boolean => filename === 'Dockerfile';
+	public needsEntry(filePath: string): boolean {
+		return path.basename(filePath) === 'Dockerfile';
+	}
 
 	public isSatisfied(): boolean {
 		return this.gotDockerfile;
@@ -33,7 +35,6 @@ export class DockerfileResolver implements Resolver {
 	}
 
 	public getCanonicalName(filename: string): string {
-		// All that needs to be done for this class of Dockerfile is to remove the .template
 		return filename;
 	}
 }

@@ -1,9 +1,9 @@
-import * as Promise from 'bluebird';
 import * as path from 'path';
 
 import * as DockerfileTemplate from 'dockerfile-template';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
+import { removeExtension } from '../utils';
 
 // Internal tuple to pass files and their extensions around
 // the class
@@ -12,13 +12,11 @@ type ArchSpecificDockerfile = [string, FileInfo];
 
 export class ArchDockerfileResolver implements Resolver {
 	public priority = 3;
-	public name = 'Archicture-specific Dockerfile';
+	public name = 'Architecture-specific Dockerfile';
 	public allowSpecifiedDockerfile = true;
 	public dockerfileContents: string;
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
-	private satisifiedArch: ArchSpecificDockerfile;
-	private satisfiedDeviceType: ArchSpecificDockerfile;
 
 	public entry(file: FileInfo): void {
 		// We know that this file is a Dockerfile, so just get the extension,
@@ -27,40 +25,39 @@ export class ArchDockerfileResolver implements Resolver {
 		this.archDockerfiles.push([ext, file]);
 	}
 
-	public needsEntry(filename: string): boolean {
-		if (filename.substr(0, filename.indexOf('.')) === 'Dockerfile') {
-			const ext = path.extname(filename);
-			return ext !== 'template';
-		}
-		return false;
+	public needsEntry(filepath: string): boolean {
+		const filename = path.basename(filepath);
+		return (
+			filename.startsWith('Dockerfile.') && !filename.endsWith('.template')
+		);
 	}
 
 	public isSatisfied(bundle: Bundle): boolean {
 		// Check for both satisfied architecture and device type
-		this.archDockerfiles.map(dockerfile => {
-			if (dockerfile[0] === bundle.architecture) {
-				this.satisifiedArch = dockerfile;
-			} else if (dockerfile[0] === bundle.deviceType) {
-				this.satisfiedDeviceType = dockerfile;
-			}
-		});
-		return (
-			this.satisifiedArch !== undefined ||
-			this.satisfiedDeviceType !== undefined
-		);
+		const satisfied = this.getSatisfiedArch(bundle);
+		return satisfied.arch !== undefined || satisfied.deviceType !== undefined;
 	}
 
-	public resolve(bundle: Bundle): Promise<FileInfo[]> {
+	public resolve(
+		bundle: Bundle,
+		specifiedFilename?: string,
+	): Promise<FileInfo[]> {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then
 		// execute that
+		const name =
+			specifiedFilename != null
+				? this.getCanonicalName(specifiedFilename)
+				: 'Dockerfile';
 
 		// device type takes precedence
+		const satisfiedPair = this.getSatisfiedArch(bundle);
 		let satisfied: ArchSpecificDockerfile;
-		if (this.satisfiedDeviceType !== undefined) {
-			satisfied = this.satisfiedDeviceType;
-		} else if (this.satisifiedArch !== undefined) {
-			satisfied = this.satisifiedArch;
+
+		if (satisfiedPair.deviceType != null) {
+			satisfied = satisfiedPair.deviceType;
+		} else if (satisfiedPair.arch != null) {
+			satisfied = satisfiedPair.arch;
 		} else {
 			return Promise.reject(
 				'Resolve called without a satisfied architecture specific dockerfile',
@@ -80,7 +77,7 @@ export class ArchDockerfileResolver implements Resolver {
 
 		return Promise.resolve([
 			{
-				name: 'Dockerfile',
+				name,
 				size: satisfied[1].size,
 				contents: new Buffer(this.dockerfileContents),
 			},
@@ -88,8 +85,23 @@ export class ArchDockerfileResolver implements Resolver {
 	}
 
 	public getCanonicalName(filename: string): string {
-		// All that needs to be done for this class of Dockerfile is to remove the .template
-		return filename;
+		// All that needs to be done for this class of Dockerfile is to remove the extension
+		return removeExtension(filename);
+	}
+
+	private getSatisfiedArch(
+		bundle: Bundle,
+	): { arch?: ArchSpecificDockerfile; deviceType?: ArchSpecificDockerfile } {
+		let arch: ArchSpecificDockerfile;
+		let deviceType: ArchSpecificDockerfile;
+		this.archDockerfiles.map(dockerfile => {
+			if (dockerfile[0] === bundle.architecture) {
+				arch = dockerfile;
+			} else if (dockerfile[0] === bundle.deviceType) {
+				deviceType = dockerfile;
+			}
+		});
+		return { arch, deviceType };
 	}
 }
 

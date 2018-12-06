@@ -1,6 +1,5 @@
-import * as Promise from 'bluebird';
-
 import * as DockerfileTemplate from 'dockerfile-template';
+import { basename } from 'path';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
 import { removeExtension } from '../utils';
@@ -19,7 +18,9 @@ export class DockerfileTemplateResolver implements Resolver {
 		this.hasDockerfileTemplate = true;
 	}
 
-	public needsEntry = (filename: string) => filename === 'Dockerfile.template';
+	public needsEntry(filepath: string) {
+		return basename(filepath) === 'Dockerfile.template';
+	}
 
 	public isSatisfied(_bundle: Bundle): boolean {
 		return this.hasDockerfileTemplate;
@@ -30,7 +31,7 @@ export class DockerfileTemplateResolver implements Resolver {
 		specifiedFilename: string = 'Dockerfile',
 	): Promise<FileInfo[]> {
 		const dockerfile: FileInfo = {
-			name: specifiedFilename,
+			name: this.getCanonicalName(specifiedFilename),
 			size: 0,
 			contents: new Buffer(''),
 		};

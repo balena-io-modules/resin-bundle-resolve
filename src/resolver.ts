@@ -1,5 +1,3 @@
-import * as Promise from 'bluebird';
-
 import Bundle from './bundle';
 import { FileInfo } from './fileInfo';
 
