@@ -136,13 +136,17 @@ async function resolveSpecifiedFile(
 	pack: tar.Pack,
 ): Promise<Resolver> {
 	// Find the resolver which will be able to resolve this file
-	const potentials = _(resolvers)
+	let potentials = _(resolvers)
 		.filter(r => r.allowSpecifiedDockerfile && r.needsEntry(filename))
 		.orderBy(r => r.priority, 'desc')
 		.value();
 
 	if (potentials.length === 0) {
-		stream.emit('error', new Error('Specified dockerfile cannot be resolved!'));
+		// Assume that this is a plain Dockerfile
+
+		// Create a new dockerfile resolver, rather than assuming
+		// it's part of the resolver list
+		potentials = [new DockerfileResolver()];
 	}
 
 	// Take the resolver with the highest priority that can act upon this file

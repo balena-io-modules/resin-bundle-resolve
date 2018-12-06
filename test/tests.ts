@@ -443,4 +443,55 @@ describe('Specifying dockerfiles', () => {
 		expect(resolvedName).to.equal('random');
 		expect(resolver).to.equal('Standard Dockerfile');
 	});
+
+	it('should allow a Dockerfile to be specified in a different location', () => {
+		const stream = fs.createReadStream(
+			require.resolve('./test-files/SpecifiedRandomFile/archive.tar'),
+		);
+
+		return new Promise(async (resolve, reject) => {
+			let resolveCount = 0;
+			const countedResolve = () => {
+				++resolveCount;
+				if (resolveCount === 2) {
+					resolve();
+				}
+			};
+
+			const hook = hookContent => {
+				try {
+					expect(hookContent.trim()).to.equal('correct');
+					countedResolve();
+				} catch (e) {
+					reject(e);
+				}
+			};
+
+			const bundle = new Resolve.Bundle(stream, '', '', hook);
+			const outputStream = Resolve.resolveInput(
+				bundle,
+				defaultResolvers(),
+				'random',
+			);
+			outputStream.on('resolver', r => {
+				try {
+					expect(r).to.equal('Standard Dockerfile');
+				} catch (e) {
+					reject(e);
+				}
+			});
+			outputStream.on('resolved-name', r => {
+				try {
+					expect(r).to.equal('random');
+				} catch (e) {
+					reject(e);
+				}
+			});
+
+			const content = await getDockerfileFromTarStream(outputStream, 'random');
+
+			expect(content.trim()).to.equal('correct');
+			countedResolve();
+		});
+	});
 });
