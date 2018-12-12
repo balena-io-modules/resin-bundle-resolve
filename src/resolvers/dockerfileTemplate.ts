@@ -51,7 +51,7 @@ export class DockerfileTemplateResolver implements Resolver {
 
 		return new Promise<FileInfo[]>(resolve => {
 			// FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
-			dockerfile.contents = new Buffer(this.dockerfileContents);
+			dockerfile.contents = Buffer.from(this.dockerfileContents);
 			dockerfile.size = dockerfile.contents.length;
 			resolve([dockerfile]);
 		});
