@@ -1,10 +1,8 @@
-import * as Promise from 'bluebird';
-
 const emptyHook = (_contents: string): Promise<void> => {
 	return Promise.resolve();
 };
 
-export default class Bundle {
+export class Bundle {
 	public tarStream: NodeJS.ReadableStream;
 
 	/**
@@ -22,7 +20,7 @@ export default class Bundle {
 	 * dockerfileHook: A function to be called with the resolved dockerfile
 	 * Note: The resolver will wait until the promise resolves before continuing
 	 */
-	private dockerfileHook: (content: string) => Promise<void>;
+	private dockerfileHook: (content: string) => void | PromiseLike<void>;
 
 	/**
 	 * constructor: Initialise a resin-bundle with a tar archive stream
@@ -39,7 +37,7 @@ export default class Bundle {
 		tarStream: NodeJS.ReadableStream,
 		deviceType: string,
 		architecture: string,
-		hook: (content: string) => Promise<void> = emptyHook,
+		hook: Bundle['dockerfileHook'] = emptyHook,
 	) {
 		this.tarStream = tarStream;
 		this.deviceType = deviceType;
@@ -47,7 +45,9 @@ export default class Bundle {
 		this.dockerfileHook = hook;
 	}
 
-	public callDockerfileHook(contents: string): Promise<void> {
-		return this.dockerfileHook(contents);
+	public async callDockerfileHook(contents: string): Promise<void> {
+		await this.dockerfileHook(contents);
 	}
 }
+
+export default Bundle;

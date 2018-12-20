@@ -26,8 +26,19 @@ export function normalizeTarEntry(name: string): string {
 export function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 	return new Promise<Buffer>((resolve, reject) => {
 		let buffer: Buffer = new Buffer('');
-		stream.on('data', (data: Buffer) => (buffer = Buffer.concat([buffer, data])));
+		stream.on(
+			'data',
+			(data: Buffer) => (buffer = Buffer.concat([buffer, data])),
+		);
 		stream.on('end', () => resolve(buffer));
 		stream.on('error', reject);
 	});
+}
+
+export function removeExtension(filename: string): string {
+	const idx = filename.lastIndexOf('.');
+	if (idx !== -1) {
+		return filename.substr(0, idx);
+	}
+	return filename;
 }

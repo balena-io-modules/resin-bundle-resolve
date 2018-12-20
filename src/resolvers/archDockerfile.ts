@@ -1,62 +1,63 @@
-import * as Promise from 'bluebird';
 import * as path from 'path';
 
 import * as DockerfileTemplate from 'dockerfile-template';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
+import { removeExtension } from '../utils';
 
 // Internal tuple to pass files and their extensions around
 // the class
 // ArchSpecificDockerfile = [extension, file info]
 type ArchSpecificDockerfile = [string, FileInfo];
 
-export default class ArchDockerfileResolver implements Resolver {
+export class ArchDockerfileResolver implements Resolver {
 	public priority = 3;
-	public name = 'Archicture-specific Dockerfile';
+	public name = 'Architecture-specific Dockerfile';
+	public allowSpecifiedDockerfile = true;
+	public dockerfileContents: string;
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
-	private satisifiedArch: ArchSpecificDockerfile;
-	private satisfiedDeviceType: ArchSpecificDockerfile;
 
 	public entry(file: FileInfo): void {
-		if (file.name.substr(0, file.name.indexOf('.')) === 'Dockerfile') {
-			// If it's a dockerfile with an extension, save it
-			// unless it's a Dockerfile.template, in which case don't
+		// We know that this file is a Dockerfile, so just get the extension,
+		// and save it for resolving later
+		const ext = path.extname(file.name).substr(1);
+		this.archDockerfiles.push([ext, file]);
+	}
 
-			// Remove the . from the start of the extension
-			const ext = path.extname(file.name).substr(1);
-			if (ext !== 'template') {
-				this.archDockerfiles.push([ext, file]);
-			}
-		}
+	public needsEntry(filepath: string): boolean {
+		const filename = path.basename(filepath);
+		return (
+			filename.startsWith('Dockerfile.') && !filename.endsWith('.template')
+		);
 	}
 
 	public isSatisfied(bundle: Bundle): boolean {
 		// Check for both satisfied architecture and device type
-		this.archDockerfiles.map(dockerfile => {
-			if (dockerfile[0] === bundle.architecture) {
-				this.satisifiedArch = dockerfile;
-			} else if (dockerfile[0] === bundle.deviceType) {
-				this.satisfiedDeviceType = dockerfile;
-			}
-		});
-		return (
-			this.satisifiedArch !== undefined ||
-			this.satisfiedDeviceType !== undefined
-		);
+		const satisfied = this.getSatisfiedArch(bundle);
+		return satisfied.arch !== undefined || satisfied.deviceType !== undefined;
 	}
 
-	public resolve(bundle: Bundle): Promise<FileInfo[]> {
+	public resolve(
+		bundle: Bundle,
+		specifiedFilename?: string,
+	): Promise<FileInfo[]> {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then
 		// execute that
+		const name =
+			specifiedFilename != null
+				? this.getCanonicalName(specifiedFilename)
+				: 'Dockerfile';
 
 		// device type takes precedence
+		const satisfiedPair = this.getSatisfiedArch(bundle);
 		let satisfied: ArchSpecificDockerfile;
-		if (this.satisfiedDeviceType !== undefined) {
-			satisfied = this.satisfiedDeviceType;
-		} else if (this.satisifiedArch !== undefined) {
-			satisfied = this.satisifiedArch;
+
+		if (satisfiedPair.deviceType != null) {
+			satisfied = satisfiedPair.deviceType;
+		} else if (satisfiedPair.arch != null) {
+			satisfied = satisfiedPair.arch;
 		} else {
 			return Promise.reject(
 				'Resolve called without a satisfied architecture specific dockerfile',
@@ -69,10 +70,39 @@ export default class ArchDockerfileResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 		};
 
-		return Promise.resolve([{
-			name: 'Dockerfile',
-			size: satisfied[1].size,
-			contents: new Buffer(DockerfileTemplate.process(satisfied[1].contents.toString(), vars)),
-		}]);
+		this.dockerfileContents = DockerfileTemplate.process(
+			satisfied[1].contents.toString(),
+			vars,
+		);
+
+		return Promise.resolve([
+			{
+				name,
+				size: satisfied[1].size,
+				contents: new Buffer(this.dockerfileContents),
+			},
+		]);
+	}
+
+	public getCanonicalName(filename: string): string {
+		// All that needs to be done for this class of Dockerfile is to remove the extension
+		return removeExtension(filename);
+	}
+
+	private getSatisfiedArch(
+		bundle: Bundle,
+	): { arch?: ArchSpecificDockerfile; deviceType?: ArchSpecificDockerfile } {
+		let arch: ArchSpecificDockerfile | undefined;
+		let deviceType: ArchSpecificDockerfile | undefined;
+		this.archDockerfiles.map(dockerfile => {
+			if (dockerfile[0] === bundle.architecture) {
+				arch = dockerfile;
+			} else if (dockerfile[0] === bundle.deviceType) {
+				deviceType = dockerfile;
+			}
+		});
+		return { arch, deviceType };
 	}
 }
+
+export default ArchDockerfileResolver;
