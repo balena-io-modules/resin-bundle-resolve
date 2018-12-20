@@ -92,8 +92,8 @@ export class ArchDockerfileResolver implements Resolver {
 	private getSatisfiedArch(
 		bundle: Bundle,
 	): { arch?: ArchSpecificDockerfile; deviceType?: ArchSpecificDockerfile } {
-		let arch: ArchSpecificDockerfile;
-		let deviceType: ArchSpecificDockerfile;
+		let arch: ArchSpecificDockerfile | undefined;
+		let deviceType: ArchSpecificDockerfile | undefined;
 		this.archDockerfiles.map(dockerfile => {
 			if (dockerfile[0] === bundle.architecture) {
 				arch = dockerfile;

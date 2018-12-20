@@ -1,8 +1,6 @@
 import * as path from 'path';
 
-import { Bundle } from '../bundle';
 import { FileInfo, Resolver } from '../resolver';
-import { removeExtension } from '../utils';
 
 export class DockerfileResolver implements Resolver {
 	public priority = 0;
