@@ -40,6 +40,7 @@
     "prettier": "^1.15.3",
     "require-npm4-to-publish": "^1.0.0",
     "resin-lint": "^2.0.1",
+    "tar-utils": "^1.1.0",
     "tslint": "^5.5.0",
     "typescript": "^2.1.6"
   },
@@ -51,6 +52,7 @@
     "lodash": "^4.17.4",
     "request": "^2.81.0",
     "semver": "^5.3.0",
-    "tar-stream": "^1.5.2"
+    "strict-event-emitter-types": "^2.0.0",
+    "tar-stream": "^1.6.2"
   }
 }
