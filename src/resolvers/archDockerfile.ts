@@ -68,6 +68,8 @@ export class ArchDockerfileResolver implements Resolver {
 		const vars: DockerfileTemplate.TemplateVariables = {
 			RESIN_ARCH: bundle.architecture,
 			RESIN_MACHINE_NAME: bundle.deviceType,
+			BALENA_ARCH: bundle.architecture,
+			BALENA_MACHINE_NAME: bundle.deviceType,
 		};
 
 		this.dockerfileContents = DockerfileTemplate.process(
