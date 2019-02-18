@@ -7,7 +7,7 @@
 		"declaration": true,
 		"pretty": true,
 		"removeComments": true,
+		"skipLibCheck": true,
 		"sourceMap": true
 	}
 }
-
