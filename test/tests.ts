@@ -567,4 +567,50 @@ describe('Specifying dockerfiles', () => {
 			countedResolve();
 		});
 	});
+
+	it('should detect the right Dockerfile when there are many', async () => {
+		const stream = fs.createReadStream(
+			require.resolve(
+				'./test-files/SpecifiedDockerfile/correct-dockerfile.tar',
+			),
+		);
+
+		await new Promise((resolve, reject) => {
+			const bundle = new Resolve.Bundle(stream, '', '', content => {
+				try {
+					expect(content.trim()).to.equal('correct');
+					resolve();
+				} catch (e) {
+					reject(e);
+				}
+			});
+
+			const listeners: Resolve.ResolveListeners = {
+				resolver: [
+					r => {
+						try {
+							expect(r).to.equal('Standard Dockerfile');
+						} catch (e) {
+							reject(e);
+						}
+					},
+				],
+				'resolved-name': [
+					r => {
+						try {
+							expect(r).to.equal('Dockerfile');
+						} catch (e) {
+							reject(e);
+						}
+					},
+				],
+			};
+
+			const outputStream = Resolve.resolveInput(
+				bundle,
+				defaultResolvers(),
+				listeners,
+			);
+		});
+	});
 });
