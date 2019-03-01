@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 import * as _ from 'lodash';
+import * as path from 'path';
 import { Readable } from 'stream';
 import * as tar from 'tar-stream';
 import * as TarUtils from 'tar-utils';
@@ -156,15 +157,20 @@ async function resolveTarStreamOnEntry(
 			return specifiedFileResolver;
 		}
 	} else {
-		const potentials = resolvers.filter(r => r.needsEntry(name));
-		if (potentials.length > 0) {
-			const fileInfo = await streamToFileInfo(stream, header);
-			for (const resolver of potentials) {
-				resolver.entry(fileInfo);
+		// If we have not specified a dockerfile, we shouldn't consider
+		// any files not in the base of the context as the application
+		// bundle file
+		if (path.normalize(name).split(path.sep).length === 1) {
+			const potentials = resolvers.filter(r => r.needsEntry(name));
+			if (potentials.length > 0) {
+				const fileInfo = await streamToFileInfo(stream, header);
+				for (const resolver of potentials) {
+					resolver.entry(fileInfo);
+				}
+				// Also add it to the stream
+				pack.entry(header, fileInfo.contents);
+				return;
 			}
-			// Also add it to the stream
-			pack.entry(header, fileInfo.contents);
-			return;
 		}
 	}
 	// Note: a tar-stream limitation requires a single pack.entry stream
