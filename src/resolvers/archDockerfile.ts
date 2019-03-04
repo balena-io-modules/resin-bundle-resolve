@@ -81,7 +81,7 @@ export class ArchDockerfileResolver implements Resolver {
 			{
 				name,
 				size: satisfied[1].size,
-				contents: new Buffer(this.dockerfileContents),
+				contents: Buffer.from(this.dockerfileContents),
 			},
 		]);
 	}
