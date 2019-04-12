@@ -10,9 +10,6 @@ import * as BluebirdLRU from 'bluebird-lru-cache';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
 
-// Used below for when no engine version can be determined.
-const DEFAULT_NODE = '0.10.22';
-
 const versionTest = RegExp.prototype.test.bind(/^[0-9]+\.[0-9]+\.[0-9]+$/);
 const versionCache: {
 	get: (deviceType: string) => Promise<string[]>;
@@ -102,13 +99,19 @@ export class NodeResolver implements Resolver {
 							.pick('preinstall', 'install', 'postinstall')
 							.size() > 0;
 
-					const nodeEngine = _.get(packageJson, 'engines.node');
-					if (nodeEngine != null && !_.isString(nodeEngine)) {
+					const nodeEngine: string | unknown = _.get(
+						packageJson,
+						'engines.node',
+					);
+					if (nodeEngine == null) {
+						throw new Error('package.json: engines.node must be specified');
+					}
+					if (!_.isString(nodeEngine)) {
 						throw new Error(
 							'package.json: engines.node must be a string if present',
 						);
 					}
-					const range: string = nodeEngine || DEFAULT_NODE; // Keep old default for compatiblity
+					const range: string = nodeEngine;
 
 					return versionCache.get(bundle.deviceType).then(versions => {
 						const nodeVersion = semver.maxSatisfying(versions, range);

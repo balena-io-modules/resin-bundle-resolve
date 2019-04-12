@@ -14,7 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Readable } from 'stream';
@@ -23,6 +24,8 @@ import * as TarUtils from 'tar-utils';
 
 import * as Resolve from '../src/index';
 import * as Utils from '../src/utils';
+
+use(chaiAsPromised);
 
 // The following indices are mapped to the order of resolvers returned
 // by Resolve.getDefaultResolvers()
@@ -65,6 +68,9 @@ function getDockerfileFromTarStream(
 				next();
 			},
 		);
+
+		stream.on('error', reject);
+		extract.on('error', reject);
 
 		extract.on('finish', () => {
 			if (!foundDockerfile) {
@@ -242,7 +248,25 @@ describe('Resolvers', () => {
 		return resolvePromise;
 	});
 
-	it.skip('should resolve a nodeJS project', function() {
+	it('should reject a nodeJS project with no engines entry', function() {
+		const resolvers = defaultResolvers();
+		const arch = '';
+		const deviceType = 'raspberrypi3';
+		const name = resolvers[nodeResolverIdx].name;
+		const stream = fs.createReadStream(
+			require.resolve('./test-files/NoEngineNodeProject/archive.tar'),
+		);
+		const bundle = new Resolve.Bundle(stream, deviceType, arch);
+		const [resolvePromise, listeners] = getPromiseForEvents({
+			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+		});
+		Resolve.resolveInput(bundle, resolvers, listeners);
+		return expect(resolvePromise).to.be.rejectedWith(
+			'package.json: engines.node must be specified',
+		);
+	});
+
+	it('should resolve a nodeJS project', function() {
 		this.timeout(6000000);
 		const resolvers = defaultResolvers();
 		const arch = '';
@@ -259,7 +283,7 @@ describe('Resolvers', () => {
 		return getDockerfileFromTarStream(outStream)
 			.then(content => {
 				expect(content.trim().split(/\r?\n/)[0]).to.equal(
-					`FROM resin/${deviceType}-node:0.10.22-onbuild`,
+					`FROM resin/${deviceType}-node:10.0.0-onbuild`,
 				);
 			})
 			.then(() => resolvePromise);
