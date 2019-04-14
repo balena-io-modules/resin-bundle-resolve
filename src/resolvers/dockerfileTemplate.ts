@@ -1,13 +1,27 @@
+/**
+ * @license
+ * Copyright 2019 Balena Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import * as DockerfileTemplate from 'dockerfile-template';
-import { basename } from 'path';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
-import { removeExtension } from '../utils';
+import { ParsedPathPlus, removeExtension } from '../utils';
 
 export class DockerfileTemplateResolver implements Resolver {
 	public priority = 2;
 	public name = 'Dockerfile.template';
-	public allowSpecifiedDockerfile = true;
 	public dockerfileContents: string;
 
 	private hasDockerfileTemplate = false;
@@ -18,8 +32,27 @@ export class DockerfileTemplateResolver implements Resolver {
 		this.hasDockerfileTemplate = true;
 	}
 
-	public needsEntry(filepath: string) {
-		return basename(filepath) === 'Dockerfile.template';
+	public needsEntry(
+		entryPath: ParsedPathPlus,
+		specifiedDockerfilePath?: string,
+	) {
+		// Note that both `entryPath` and `specifiedDockerfilePath` are normalized through
+		// `TarUtils.normalizeTarEntry()` before the call this method, so they won't have
+		// leading or trailing slashes or redundant path components.
+		// Consider two cases:
+		// * If a `specifiedDockeriflePath` was specified, say `'service/MyDockerfile.template'`,
+		//   then this method will only match a tar entry whose full path is identical to that
+		//   (`entryPath.unparsed === specifiedDockerfilePath`), and provided that the
+		//   `specifiedDockeriflePath` has a `'.template'` file extension.
+		// * Otherwise, it will match `Dockerfile.template` at the root of the project directory
+		//   tree, as `entryPath.minusExt` is the full entry path minus the file extension, which
+		//   must be exactly `'Dockerfile'`.
+		return (
+			entryPath.ext === '.template' &&
+			(specifiedDockerfilePath
+				? entryPath.unparsed === specifiedDockerfilePath
+				: entryPath.minusExt === 'Dockerfile')
+		);
 	}
 
 	public isSatisfied(_bundle: Bundle): boolean {
@@ -28,10 +61,10 @@ export class DockerfileTemplateResolver implements Resolver {
 
 	public resolve(
 		bundle: Bundle,
-		specifiedFilename: string = 'Dockerfile',
+		specifiedDockerfilePath: string = 'Dockerfile',
 	): Promise<FileInfo[]> {
 		const dockerfile: FileInfo = {
-			name: this.getCanonicalName(specifiedFilename),
+			name: this.getCanonicalName(specifiedDockerfilePath),
 			size: 0,
 			contents: new Buffer(''),
 		};

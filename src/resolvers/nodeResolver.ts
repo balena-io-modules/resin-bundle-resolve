@@ -1,3 +1,19 @@
+/**
+ * @license
+ * Copyright 2019 Balena Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import * as Bluebird from 'bluebird';
 
 import * as _ from 'lodash';
@@ -9,6 +25,7 @@ const getAsync = Bluebird.promisify(request.get);
 import * as BluebirdLRU from 'bluebird-lru-cache';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
+import { ParsedPathPlus } from '../utils';
 
 const versionTest = RegExp.prototype.test.bind(/^[0-9]+\.[0-9]+\.[0-9]+$/);
 const versionCache: {
@@ -52,7 +69,6 @@ const versionCache: {
 export class NodeResolver implements Resolver {
 	public priority = 0;
 	public name = 'NodeJS';
-	public allowSpecifiedDockerfile = false;
 	public dockerfileContents: string;
 
 	private packageJsonContent?: Buffer;
@@ -66,11 +82,26 @@ export class NodeResolver implements Resolver {
 		}
 	}
 
-	public needsEntry(filename: string): boolean {
+	public needsEntry(
+		entryPath: ParsedPathPlus,
+		specifiedDockerfilePath?: string,
+	): boolean {
+		// Note:
+		// - Both `entryPath` and `specifiedDockerfilePath` are normalized through
+		//   `TarUtils.normalizeTarEntry()` before the call this method, so they won't have leading
+		//   or trailing slashes or redundant path components.
+		// - Tar files always use forward slash as path separators (regardless of platform/OS
+		//   conventions), so the search for '/' instead of `path.sep` below is not a bug :-)
+		// Consider two cases:
+		// * If a `specifiedDockeriflePath` was specified, then this method returns false.
+		// * Otherwise, it will match `package.json`, `wscript` or `*.gyp` at the root of the
+		//   project directory tree, as `entryPath.unparsed` is the full path.
+		const unparsed = entryPath.unparsed;
 		return (
-			filename === 'package.json' ||
-			filename === 'wscript' ||
-			_.endsWith(filename, '.gyp')
+			!specifiedDockerfilePath &&
+			(unparsed === 'package.json' ||
+				unparsed === 'wscript' ||
+				(!unparsed.includes('/') && entryPath.ext === '.gyp'))
 		);
 	}
 
@@ -78,7 +109,10 @@ export class NodeResolver implements Resolver {
 		return this.packageJsonContent != null;
 	}
 
-	public resolve(bundle: Bundle): Promise<FileInfo[]> {
+	public resolve(
+		bundle: Bundle,
+		_specifiedDockerfilePath?: string,
+	): Promise<FileInfo[]> {
 		// Generate a dockerfile which will run the file
 		// Use latest node base image. Don't use the slim image just in case
 		// TODO: Find out which apt-get packages are installed mostly with node
@@ -148,7 +182,7 @@ export class NodeResolver implements Resolver {
 		);
 	}
 
-	public getCanonicalName(): string {
+	public getCanonicalName(_specifiedPath: string): string {
 		throw new Error('getCanonicalName called on unsupported resolver NodeJS');
 	}
 }

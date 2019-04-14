@@ -1,5 +1,6 @@
 import Bundle from './bundle';
 import { FileInfo } from './fileInfo';
+import { ParsedPathPlus } from './utils';
 
 // Make the external types available to implementers
 export { Bundle, FileInfo };
@@ -20,13 +21,6 @@ export interface Resolver {
 	name: string;
 
 	/**
-	 * allowSpecifiedDockerfile: Can this resolver accept a specific
-	 * file to be used as the Dockerfile. This makes sense for normal
-	 * Dockerfile and .template projects, but not package.json projects
-	 */
-	allowSpecifiedDockerfile: boolean;
-
-	/**
 	 * dockerfileContent: The content of the resolved dockerfile
 	 */
 	dockerfileContents: string;
@@ -44,11 +38,14 @@ export interface Resolver {
 
 	/**
 	 * needsEntry: Should this resolve get the content of this file
-	 * @param filename The name of the file in the tar archive
+	 * @param entryPath Parsed tar entry path
 	 * @return
 	 *  True if the entry function should be called with this file
 	 */
-	needsEntry(filename: string): boolean;
+	needsEntry(
+		entryPath: ParsedPathPlus,
+		specifiedDockerfilePath?: string,
+	): boolean;
 
 	/**
 	 * isSatisfied: Once all of the entries in the tar stream have been provided to
@@ -74,7 +71,10 @@ export interface Resolver {
 	 *  A promise of a list of files which when added to the bundle allow docker
 	 *  to build the bundle
 	 */
-	resolve(bundle: Bundle, specifiedPath?: string): Promise<FileInfo[]>;
+	resolve(
+		bundle: Bundle,
+		specifiedDockerfilePath?: string,
+	): Promise<FileInfo[]>;
 
 	/**
 	 * getCanonicalName: If this resolver supports specifying a path as the main
