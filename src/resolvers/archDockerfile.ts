@@ -1,9 +1,25 @@
-import * as path from 'path';
+/**
+ * @license
+ * Copyright 2019 Balena Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import { posix } from 'path';
 
 import * as DockerfileTemplate from 'dockerfile-template';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
-import { removeExtension } from '../utils';
+import { ParsedPathPlus, removeExtension } from '../utils';
 
 // Internal tuple to pass files and their extensions around
 // the class
@@ -13,7 +29,6 @@ type ArchSpecificDockerfile = [string, FileInfo];
 export class ArchDockerfileResolver implements Resolver {
 	public priority = 3;
 	public name = 'Architecture-specific Dockerfile';
-	public allowSpecifiedDockerfile = true;
 	public dockerfileContents: string;
 
 	private archDockerfiles: ArchSpecificDockerfile[] = [];
@@ -21,15 +36,32 @@ export class ArchDockerfileResolver implements Resolver {
 	public entry(file: FileInfo): void {
 		// We know that this file is a Dockerfile, so just get the extension,
 		// and save it for resolving later
-		const ext = path.extname(file.name).substr(1);
+		const ext = posix.extname(file.name).substr(1);
 		this.archDockerfiles.push([ext, file]);
 	}
 
-	public needsEntry(filepath: string): boolean {
-		const filename = path.basename(filepath);
-		return (
-			filename.startsWith('Dockerfile.') && !filename.endsWith('.template')
-		);
+	public needsEntry(
+		entryPath: ParsedPathPlus,
+		specifiedDockerfilePath?: string,
+	): boolean {
+		// Note that both `entryPath` and `specifiedDockerfilePath` are normalized through
+		// `TarUtils.normalizeTarEntry()` before the call this method, so they won't have
+		// leading or trailing slashes or redundant path components.
+		// Consider two cases:
+		// * If a `specifiedDockeriflePath` was specified, say `'service/MyDockerfile.armv7hf'`,
+		//   then this method will only match a tar entry whose full path is identical to that
+		//   (`entryPath.unparsed === specifiedDockerfilePath`), and provided that the
+		//   `specifiedDockeriflePath` has a non-empty file extension different to `'.template'`.
+		// * Otherwise, it will match `Dockerfile.xxx` where xxx is a non-empty file extension
+		//   different to `'.template'`. This will only be matched at the
+		//   root of the project directory tree, as `entryPath.minusExt` is the full path minus the
+		//   file extension, which must be exactly `'Dockerfile'`.
+
+		const nameMatches = specifiedDockerfilePath
+			? entryPath.unparsed === specifiedDockerfilePath
+			: entryPath.minusExt === 'Dockerfile';
+
+		return nameMatches && !!entryPath.ext && entryPath.ext !== '.template';
 	}
 
 	public isSatisfied(bundle: Bundle): boolean {
@@ -40,14 +72,14 @@ export class ArchDockerfileResolver implements Resolver {
 
 	public resolve(
 		bundle: Bundle,
-		specifiedFilename?: string,
+		specifiedDockerfilePath?: string,
 	): Promise<FileInfo[]> {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then
 		// execute that
 		const name =
-			specifiedFilename != null
-				? this.getCanonicalName(specifiedFilename)
+			specifiedDockerfilePath != null
+				? this.getCanonicalName(specifiedDockerfilePath)
 				: 'Dockerfile';
 
 		// device type takes precedence

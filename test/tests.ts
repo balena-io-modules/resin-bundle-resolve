@@ -17,7 +17,6 @@
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as fs from 'fs';
-import * as path from 'path';
 import { Readable } from 'stream';
 import * as tar from 'tar-stream';
 import * as TarUtils from 'tar-utils';
@@ -53,7 +52,7 @@ function getDockerfileFromTarStream(
 				entryStream: NodeJS.ReadableStream,
 				next: () => void,
 			) => {
-				if (path.normalize(header.name) === name) {
+				if (TarUtils.normalizeTarEntry(header.name) === name) {
 					let contents = '';
 					entryStream.on('data', (data: string) => {
 						contents += data;
@@ -114,118 +113,161 @@ function getPromiseForEvents(
 	return [resolvePromise, listeners];
 }
 
+async function testResolveInput({
+	architecture = '',
+	deviceType = '',
+	dockerfileContentMatcher = contents => contents === 'correct',
+	expectedResolvedDockerfilePath,
+	expectedResolverName,
+	shouldCallHook = true,
+	specifiedDockerfilePath,
+	tarFilePath,
+}: {
+	architecture?: string;
+	deviceType?: string;
+	dockerfileContentMatcher?: (contents: string) => boolean;
+	expectedResolvedDockerfilePath: string;
+	expectedResolverName: string;
+	shouldCallHook?: boolean;
+	specifiedDockerfilePath: string;
+	tarFilePath: string;
+}) {
+	let content: string;
+	let resolvedName: string;
+	let resolverName: string;
+	const hook = hookContent => {
+		if (shouldCallHook) {
+			content = hookContent;
+		} else {
+			throw new Error('hook should not be called');
+		}
+	};
+	const tarStream = fs.createReadStream(require.resolve(tarFilePath));
+	const bundle = new Resolve.Bundle(tarStream, deviceType, architecture, hook);
+	const [resolvePromise, listeners] = getPromiseForEvents(
+		{
+			resolver: (name: string) => {
+				resolverName = name;
+			},
+			'resolved-name': (name: string) => {
+				resolvedName = name;
+			},
+		},
+		true,
+		true,
+	);
+	let outputStream;
+
+	outputStream = Resolve.resolveInput(
+		bundle,
+		defaultResolvers(),
+		listeners,
+		specifiedDockerfilePath,
+	);
+
+	let tarContent;
+	if (expectedResolvedDockerfilePath) {
+		tarContent = await getDockerfileFromTarStream(
+			outputStream,
+			expectedResolvedDockerfilePath,
+		);
+	} else {
+		outputStream.resume();
+	}
+
+	await resolvePromise;
+
+	expect(resolverName).to.equal(expectedResolverName);
+	if (expectedResolvedDockerfilePath) {
+		if (specifiedDockerfilePath) {
+			expect(resolvedName).to.equal(expectedResolvedDockerfilePath);
+		}
+		expect(dockerfileContentMatcher(tarContent.trim())).to.equal(
+			true,
+			`Bad stream contents for "${expectedResolvedDockerfilePath}": ${tarContent.trim()}`,
+		);
+	}
+	if (shouldCallHook) {
+		expect(dockerfileContentMatcher(content.trim())).to.equal(
+			true,
+			`Bad contents in hook call: ${content.trim()}`,
+		);
+	}
+}
+
 describe('Resolvers', () => {
-	it('should return resolve a standard Dockerfile project', async () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/Dockerfile/archive.tar'),
-		);
-
-		const bundle = new Resolve.Bundle(stream, '', '');
-		const resolvers = defaultResolvers();
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) =>
-				expect(resolverName).to.equal(resolvers[dockerfileResolverIdx].name),
+	it('should return resolve a standard Dockerfile project', () => {
+		return testResolveInput({
+			dockerfileContentMatcher: contents =>
+				contents === `FROM debian:jessie\n\nRUN apt-get update`,
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/Dockerfile/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		outStream.resume();
-		await resolvePromise;
 	});
 
-	it('should resolve a Dockerfile.template correctly', async () => {
+	it('should resolve a Dockerfile.template correctly', () => {
 		const deviceType = 'device-type-test';
 		const arch = 'architecture-test';
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/DockerfileTemplate/archive.tar'),
-		);
-		const resolvers = defaultResolvers();
-		const name = resolvers[dockerfileTemplateResolverIdx].name;
-
-		const bundle = new Resolve.Bundle(stream, deviceType, arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+		return testResolveInput({
+			architecture: arch,
+			deviceType,
+			dockerfileContentMatcher: contents =>
+				contents === `FROM resin/${deviceType}-node:slim\nRUN echo ${arch}`,
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/DockerfileTemplate/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		const dockerfile = await getDockerfileFromTarStream(outStream);
-		const lines = dockerfile.split(/\r?\n/);
-		expect(lines[0]).to.equal(`FROM resin/${deviceType}-node:slim`);
-		expect(lines[1]).to.equal(`RUN echo ${arch}`);
-		await resolvePromise;
 	});
 
-	it('should resolve a balena Dockerfile.template correctly', async () => {
+	it('should resolve a balena Dockerfile.template correctly', () => {
 		const deviceType = 'device-type-test';
 		const arch = 'architecture-test';
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/BalenaDockerfileTemplate/archive.tar'),
-		);
-		const resolvers = defaultResolvers();
-		const name = resolvers[dockerfileTemplateResolverIdx].name;
-
-		const bundle = new Resolve.Bundle(stream, deviceType, arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+		return testResolveInput({
+			architecture: arch,
+			deviceType,
+			dockerfileContentMatcher: contents =>
+				contents === `FROM resin/${deviceType}-node:slim\nRUN echo ${arch}`,
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/BalenaDockerfileTemplate/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		const dockerfile = await getDockerfileFromTarStream(outStream);
-		const lines = dockerfile.split(/\r?\n/);
-		expect(lines[0]).to.equal(`FROM resin/${deviceType}-node:slim`);
-		expect(lines[1]).to.equal(`RUN echo ${arch}`);
-		await resolvePromise;
 	});
 
-	it('should resolve an architecture specific dockerfile', async () => {
-		const arch = 'i386';
-		const resolvers = defaultResolvers();
-		const name = resolvers[archDockerfileResolverIdx].name;
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/ArchitectureDockerfile/archive.tar'),
-		);
-
-		const bundle = new Resolve.Bundle(stream, '', arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+	it('should resolve an architecture specific dockerfile', () => {
+		return testResolveInput({
+			architecture: 'i386',
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/ArchitectureDockerfile/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		const dockerfile = await getDockerfileFromTarStream(outStream);
-		expect(dockerfile.trim()).to.equal('correct');
-		await resolvePromise;
 	});
 
-	it('should prioritise architecture dockerfiles over dockerfile templates', async () => {
-		const arch = 'i386';
-		const resolvers = defaultResolvers();
-		const name = resolvers[archDockerfileResolverIdx].name;
-		const stream = fs.createReadStream(
-			'./test/test-files/ArchTemplatePriority/archive.tar',
-		);
-
-		const bundle = new Resolve.Bundle(stream, '', arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+	it('should prioritise architecture dockerfiles over dockerfile templates', () => {
+		return testResolveInput({
+			architecture: 'i386',
+			dockerfileContentMatcher: contents => contents === 'i386',
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/ArchPriority/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		const dockerfile = await getDockerfileFromTarStream(outStream);
-		expect(dockerfile.trim()).to.equal(arch);
-		await resolvePromise;
 	});
 
-	it('should prioritise device type over architecture dockerfiles', async () => {
-		const arch = 'armv7hf';
-		const deviceType = 'raspberry-pi2';
-		const resolvers = defaultResolvers();
-		const name = resolvers[archDockerfileResolverIdx].name;
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/ArchPriority/archive.tar'),
-		);
-
-		const bundle = new Resolve.Bundle(stream, deviceType, arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+	it('should prioritise device type over architecture dockerfiles', () => {
+		return testResolveInput({
+			architecture: 'armv7hf',
+			deviceType: 'raspberry-pi2',
+			dockerfileContentMatcher: contents => contents === 'raspberry-pi2',
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/ArchPriority/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		const dockerfile = await getDockerfileFromTarStream(outStream);
-		expect(dockerfile.trim()).to.equal('correct');
-		await resolvePromise;
 	});
 
 	it('should handle incorrect template variables', () => {
@@ -233,7 +275,6 @@ describe('Resolvers', () => {
 		const stream = fs.createReadStream(
 			require.resolve('./test-files/IncorrectTemplateMacros/archive.tar'),
 		);
-
 		const bundle = new Resolve.Bundle(stream, '', '');
 		const [resolvePromise, listeners] = getPromiseForEvents(
 			{
@@ -248,102 +289,63 @@ describe('Resolvers', () => {
 		return resolvePromise;
 	});
 
-	it('should reject a nodeJS project with no engines entry', function() {
-		const resolvers = defaultResolvers();
-		const arch = '';
-		const deviceType = 'raspberrypi3';
-		const name = resolvers[nodeResolverIdx].name;
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/NoEngineNodeProject/archive.tar'),
-		);
-		const bundle = new Resolve.Bundle(stream, deviceType, arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
-		});
-		Resolve.resolveInput(bundle, resolvers, listeners);
-		return expect(resolvePromise).to.be.rejectedWith(
+	it('should reject a `nodeJS project with no engines entry', async function() {
+		let errorMessage: string;
+		try {
+			await testResolveInput({
+				expectedResolvedDockerfilePath: undefined,
+				expectedResolverName: 'NodeJS',
+				specifiedDockerfilePath: undefined,
+				tarFilePath: './test-files/NoEngineNodeProject/archive.tar',
+			});
+		} catch (err) {
+			errorMessage = err.message;
+		}
+		expect(errorMessage).to.equal(
 			'package.json: engines.node must be specified',
 		);
 	});
 
 	it('should resolve a nodeJS project', function() {
-		this.timeout(6000000);
-		const resolvers = defaultResolvers();
-		const arch = '';
+		this.timeout(3600000);
 		const deviceType = 'raspberrypi3';
-		const name = resolvers[nodeResolverIdx].name;
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/NodeProject/archive.tar'),
-		);
-		const bundle = new Resolve.Bundle(stream, deviceType, arch);
-		const [resolvePromise, listeners] = getPromiseForEvents({
-			resolver: (resolverName: string) => expect(resolverName).to.equal(name),
+		return testResolveInput({
+			deviceType,
+			dockerfileContentMatcher: contents =>
+				contents.startsWith(`FROM resin/${deviceType}-node:10.0.0-onbuild`),
+			expectedResolvedDockerfilePath: undefined,
+			expectedResolverName: 'NodeJS',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/NodeProject/archive.tar',
 		});
-		const outStream = Resolve.resolveInput(bundle, resolvers, listeners);
-		return getDockerfileFromTarStream(outStream)
-			.then(content => {
-				expect(content.trim().split(/\r?\n/)[0]).to.equal(
-					`FROM resin/${deviceType}-node:10.0.0-onbuild`,
-				);
-			})
-			.then(() => resolvePromise);
 	});
 });
 
 describe('Hooks', () => {
-	it('should call a hook on a resolved Dockerfile.template bundle', async () => {
-		const resolvers = defaultResolvers();
+	it('should call a hook on a resolved Dockerfile.template bundle', () => {
 		const arch = 'arch';
 		const deviceType = 'dt';
-
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/Hooks/Template/archive.tar'),
-		);
-
-		let content: string;
-
-		const hook = (c: string): void => {
-			content = c;
-		};
-
-		const bundle = new Resolve.Bundle(stream, deviceType, arch, hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{ end: () => 0 },
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(bundle, resolvers, listeners);
-
-		outputStream.resume();
-		await resolvePromise;
-		expect(content.trim()).to.equal(`${deviceType}:${arch}`);
+		return testResolveInput({
+			architecture: arch,
+			deviceType,
+			dockerfileContentMatcher: contents =>
+				contents === `${deviceType}:${arch}`,
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/Hooks/Template/archive.tar',
+		});
 	});
 
-	it('should call a hook on a resolved Dockerfile bundle', async () => {
-		const resolvers = defaultResolvers();
-		const arch = '';
-		const deviceType = '';
-
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/Hooks/Dockerfile/archive.tar'),
-		);
-
-		let content: string;
-		const hook = (c: string): void => {
-			content = c;
-		};
-
-		const bundle = new Resolve.Bundle(stream, deviceType, arch, hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{ end: () => 0 },
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(bundle, resolvers, listeners);
-
-		outputStream.resume();
-		await resolvePromise;
-		expect(content.trim()).to.equal('This is the dockerfile contents');
+	it('should call a hook on a resolved Dockerfile bundle', () => {
+		return testResolveInput({
+			dockerfileContentMatcher: contents =>
+				contents === 'This is the dockerfile contents',
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/Hooks/Dockerfile/archive.tar',
+		});
 	});
 });
 
@@ -352,9 +354,9 @@ describe('Utils', () => {
 		const fn = TarUtils.normalizeTarEntry;
 		expect(fn('Dockerfile')).to.equal('Dockerfile');
 		expect(fn('./Dockerfile')).to.equal('Dockerfile');
-		expect(fn('../Dockerfile')).to.equal(path.join('..', 'Dockerfile'));
+		expect(fn('../Dockerfile')).to.equal('../Dockerfile');
 		expect(fn('/Dockerfile')).to.equal('Dockerfile');
-		expect(fn('./a/b/Dockerfile')).to.equal(path.join('a', 'b', 'Dockerfile'));
+		expect(fn('./a/b/Dockerfile')).to.equal('a/b/Dockerfile');
 	});
 
 	it('should correctly remove file extensions', () => {
@@ -367,274 +369,101 @@ describe('Utils', () => {
 });
 
 describe('Specifying dockerfiles', () => {
-	it('should allow a Dockerfile to be specified in a different location', async () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/SpecifiedDockerfile/archive.tar'),
-		);
-
-		let content: string;
-		const resolverName = 'Standard Dockerfile';
-		const dockerfileName = 'test/Dockerfile';
-
-		const hook = hookContent => {
-			content = hookContent;
-		};
-
-		const bundle = new Resolve.Bundle(stream, '', '', hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{
-				resolver: (rsvrName: string) => expect(rsvrName).to.equal(resolverName),
-				'resolved-name': (resolvedName: string) =>
-					expect(resolvedName).to.equal(dockerfileName),
-			},
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(
-			bundle,
-			defaultResolvers(),
-			listeners,
-			dockerfileName,
-		);
-
-		const tarContent = await getDockerfileFromTarStream(
-			outputStream,
-			dockerfileName,
-		);
-		await resolvePromise;
-
-		expect(tarContent.trim()).to.equal('correct');
-		expect(content.trim()).to.equal('correct');
+	it('should allow a Dockerfile to be specified in a different location', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'test/Dockerfile',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: 'test/Dockerfile',
+			tarFilePath: './test-files/SpecifiedDockerfile/archive.tar',
+		});
 	});
 
-	it('should allow a Dockerfile.template to be specified in a different location', async () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/SpecifiedDockerfileTemplate/archive.tar'),
-		);
-
-		let content: string;
-		const resolverName = 'Dockerfile.template';
-		const dockerfileName = 'test/Dockerfile';
-
-		const hook = hookContent => {
-			content = hookContent;
-		};
-
-		const bundle = new Resolve.Bundle(stream, '', '', hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{
-				resolver: (rsvrName: string) => expect(rsvrName).to.equal(resolverName),
-				'resolved-name': (resolvedName: string) =>
-					expect(resolvedName).to.equal(dockerfileName),
-			},
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(
-			bundle,
-			defaultResolvers(),
-			listeners,
-			'test/Dockerfile.template',
-		);
-
-		const tarContent = await getDockerfileFromTarStream(
-			outputStream,
-			dockerfileName,
-		);
-		outputStream.resume();
-		await resolvePromise;
-
-		expect(tarContent.trim()).to.equal('correct');
-		expect(content.trim()).to.equal('correct');
+	it('should allow a Dockerfile.template to be specified in a different location', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'test/Dockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			specifiedDockerfilePath: 'test/Dockerfile.template',
+			tarFilePath: './test-files/SpecifiedDockerfileTemplate/archive.tar',
+		});
 	});
 
-	it('should allow an arch specific dockerfile to be specified', async () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/SpecifiedArchDockerfile/archive.tar'),
-		);
-
-		let content: string;
-		const resolverName = 'Architecture-specific Dockerfile';
-		const dockerfileName = 'test/Dockerfile';
-
-		const hook = hookContent => {
-			content = hookContent;
-		};
-
-		const bundle = new Resolve.Bundle(stream, '', 'armv7hf', hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{
-				resolver: (rsvrName: string) => expect(rsvrName).to.equal(resolverName),
-				'resolved-name': (resolvedName: string) =>
-					expect(resolvedName).to.equal(dockerfileName),
-			},
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(
-			bundle,
-			defaultResolvers(),
-			listeners,
-			'test/Dockerfile.armv7hf',
-		);
-
-		const tarContent = await getDockerfileFromTarStream(
-			outputStream,
-			dockerfileName,
-		);
-		outputStream.resume();
-		await resolvePromise;
-
-		expect(tarContent.trim()).to.equal('correct');
-		expect(content.trim()).to.equal('correct');
+	it('should allow a Dockerfile.template to have a different name', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'MyDockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			specifiedDockerfilePath: 'MyDockerfile.template',
+			tarFilePath: './test-files/SpecifiedMyDockerfileTemplate/archive.tar',
+		});
 	});
 
-	it('should allow a Dockerfile to be specified in a different location', async () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/SpecifiedRandomFile/archive.tar'),
-		);
+	it('should allow an arch-specific dockerfile to be specified in a different location', () => {
+		return testResolveInput({
+			architecture: 'armv7hf',
+			expectedResolvedDockerfilePath: 'test/Dockerfile',
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			specifiedDockerfilePath: 'test/Dockerfile.armv7hf',
+			tarFilePath: './test-files/SpecifiedArchDockerfile/archive.tar',
+		});
+	});
 
-		let content: string;
-		const resolverName = 'Standard Dockerfile';
-		const dockerfileName = 'random';
-
-		const hook = hookContent => {
-			content = hookContent;
-		};
-
-		const bundle = new Resolve.Bundle(stream, '', 'armv7hf', hook);
-		const [resolvePromise, listeners] = getPromiseForEvents(
-			{
-				resolver: (rsvrName: string) => expect(rsvrName).to.equal(resolverName),
-				'resolved-name': (resolvedName: string) =>
-					expect(resolvedName).to.equal(dockerfileName),
-			},
-			true,
-			true,
-		);
-		const outputStream = Resolve.resolveInput(
-			bundle,
-			defaultResolvers(),
-			listeners,
-			dockerfileName,
-		);
-
-		const tarContent = await getDockerfileFromTarStream(
-			outputStream,
-			dockerfileName,
-		);
-		outputStream.resume();
-		await resolvePromise;
-
-		expect(tarContent.trim()).to.equal('correct');
-		expect(content.trim()).to.equal('correct');
+	it('should allow an arch-specific dockerfile to have a different name', () => {
+		return testResolveInput({
+			architecture: 'armv7hf',
+			expectedResolvedDockerfilePath: 'MyDockerfile',
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			specifiedDockerfilePath: 'MyDockerfile.armv7hf',
+			tarFilePath: './test-files/SpecifiedArchMyDockerfile/archive.tar',
+		});
 	});
 
 	it('should allow a Dockerfile to be specified in a different location', () => {
-		const stream = fs.createReadStream(
-			require.resolve('./test-files/SpecifiedRandomFile/archive.tar'),
-		);
-		const dockerfileName = 'random';
-
-		return new Promise(async (resolve, reject) => {
-			let resolveCount = 0;
-			const countedResolve = () => {
-				++resolveCount;
-				if (resolveCount === 2) {
-					resolve();
-				}
-			};
-
-			const hook = hookContent => {
-				try {
-					expect(hookContent.trim()).to.equal('correct');
-					countedResolve();
-				} catch (e) {
-					reject(e);
-				}
-			};
-
-			const bundle = new Resolve.Bundle(stream, '', '', hook);
-			const listeners: Resolve.ResolveListeners = {
-				resolver: [
-					r => {
-						try {
-							expect(r).to.equal('Standard Dockerfile');
-						} catch (e) {
-							reject(e);
-						}
-					},
-				],
-				'resolved-name': [
-					r => {
-						try {
-							expect(r).to.equal(dockerfileName);
-						} catch (e) {
-							reject(e);
-						}
-					},
-				],
-			};
-			const outputStream = Resolve.resolveInput(
-				bundle,
-				defaultResolvers(),
-				listeners,
-				dockerfileName,
-			);
-
-			const content = await getDockerfileFromTarStream(
-				outputStream,
-				dockerfileName,
-			);
-
-			expect(content.trim()).to.equal('correct');
-			countedResolve();
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'random',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: 'random',
+			tarFilePath: './test-files/SpecifiedRandomFile/archive.tar',
 		});
 	});
 
-	it('should detect the right Dockerfile when there are many', async () => {
-		const stream = fs.createReadStream(
-			require.resolve(
-				'./test-files/SpecifiedDockerfile/correct-dockerfile.tar',
-			),
-		);
-
-		await new Promise((resolve, reject) => {
-			const bundle = new Resolve.Bundle(stream, '', '', content => {
-				try {
-					expect(content.trim()).to.equal('correct');
-					resolve();
-				} catch (e) {
-					reject(e);
-				}
-			});
-
-			const listeners: Resolve.ResolveListeners = {
-				resolver: [
-					r => {
-						try {
-							expect(r).to.equal('Standard Dockerfile');
-						} catch (e) {
-							reject(e);
-						}
-					},
-				],
-				'resolved-name': [
-					r => {
-						try {
-							expect(r).to.equal('Dockerfile');
-						} catch (e) {
-							reject(e);
-						}
-					},
-				],
-			};
-
-			const outputStream = Resolve.resolveInput(
-				bundle,
-				defaultResolvers(),
-				listeners,
-			);
+	it('should detect the right Dockerfile when there are many', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/SpecifiedDockerfile/correct-dockerfile.tar',
 		});
+	});
+
+	it('should emit an error if a specified Dockerfile cannot be found', async () => {
+		let errorMessage: string;
+		try {
+			await testResolveInput({
+				expectedResolvedDockerfilePath: undefined,
+				expectedResolverName: undefined,
+				specifiedDockerfilePath: 'InexistentDockerfile',
+				tarFilePath: './test-files/SpecifiedArchMyDockerfile/archive.tar',
+			});
+		} catch (err) {
+			errorMessage = err.message;
+		}
+		expect(errorMessage).to.equal(
+			'Specified dockerfile could not be resolved: InexistentDockerfile',
+		);
+	});
+
+	it('should emit an error if an unspecified Dockerfile cannot be found', async () => {
+		let errorMessage: string;
+		try {
+			await testResolveInput({
+				expectedResolvedDockerfilePath: undefined,
+				expectedResolverName: undefined,
+				shouldCallHook: false,
+				specifiedDockerfilePath: undefined,
+				tarFilePath: './test-files/MissingDockerfile/archive.tar',
+			});
+		} catch (err) {
+			errorMessage = err.message;
+		}
+		expect(errorMessage).to.equal('Resolution could not be performed');
 	});
 });

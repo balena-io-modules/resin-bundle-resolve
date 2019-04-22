@@ -15,10 +15,34 @@
  * limitations under the License.
  */
 
+import { ParsedPath, posix } from 'path';
+
+export interface ParsedPathPlus extends ParsedPath {
+	minusExt: string;
+	unparsed: string;
+}
+
 export function removeExtension(filename: string): string {
 	const idx = filename.lastIndexOf('.');
 	if (idx !== -1) {
 		return filename.substr(0, idx);
 	}
 	return filename;
+}
+
+/**
+ * Like path.posix.parse(), with a couple more fields: minusExt and unparsed.
+ * https://nodejs.org/docs/latest-v8.x/api/path.html#path_path_parse_path
+ */
+export function parsePosixPath(posixPath: string): ParsedPathPlus {
+	const { base, dir, ext, name, root } = posix.parse(posixPath);
+	return {
+		base,
+		dir,
+		ext,
+		minusExt: dir && dir !== '.' ? `${dir}/${name}` : name,
+		name,
+		root,
+		unparsed: posixPath,
+	};
 }

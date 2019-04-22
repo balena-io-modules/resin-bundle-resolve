@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 import * as _ from 'lodash';
-import * as path from 'path';
 import { Readable } from 'stream';
 import * as tar from 'tar-stream';
 import * as TarUtils from 'tar-utils';
@@ -29,6 +28,7 @@ import ArchDockerfileResolver from './resolvers/archDockerfile';
 import DockerfileResolver from './resolvers/dockerfile';
 import DockerfileTemplateResolver from './resolvers/dockerfileTemplate';
 import NodeResolver from './resolvers/nodeResolver';
+import { parsePosixPath } from './utils';
 
 // re-export
 export {
@@ -79,7 +79,7 @@ export function resolveInput(
 			pack.on(event, listener);
 		}
 	}
-	let specifiedFileResolver: null | Resolver = null;
+
 	if (dockerfile != null) {
 		// Ensure that this will match the entry in the tar archive
 		dockerfile = TarUtils.normalizeTarEntry(dockerfile);
@@ -90,16 +90,13 @@ export function resolveInput(
 		'entry',
 		async (header: tar.Headers, stream: Readable, next: () => void) => {
 			try {
-				specifiedFileResolver =
-					(await resolveTarStreamOnEntry(
-						header,
-						stream,
-						bundle,
-						resolvers,
-						pack,
-						specifiedFileResolver,
-						dockerfile,
-					)) || specifiedFileResolver;
+				await resolveTarStreamOnEntry(
+					header,
+					stream,
+					resolvers,
+					pack,
+					dockerfile,
+				);
 				next();
 			} catch (error) {
 				pack.emit('error', error);
@@ -109,13 +106,7 @@ export function resolveInput(
 
 	extract.once('finish', async () => {
 		try {
-			await resolveTarStreamOnFinish(
-				bundle,
-				resolvers,
-				pack,
-				specifiedFileResolver,
-				dockerfile,
-			);
+			await resolveTarStreamOnFinish(bundle, resolvers, pack, dockerfile);
 		} catch (error) {
 			pack.emit('error', error);
 		} finally {
@@ -130,91 +121,63 @@ export function resolveInput(
 async function resolveTarStreamOnEntry(
 	header: tar.Headers,
 	stream: Readable,
-	bundle: Bundle,
 	resolvers: Resolver[],
 	pack: tar.Pack,
-	specifiedFileResolver: null | Resolver = null,
 	dockerfile?: string,
-): Promise<Resolver | undefined> {
-	const name = TarUtils.normalizeTarEntry(header.name);
-
+): Promise<void> {
+	const name = header.name ? TarUtils.normalizeTarEntry(header.name) : '';
 	if (!name) {
 		await TarUtils.drainStream(stream);
 		return;
 	}
-
-	// Handle the case where the dockerfile is specified
-	if (dockerfile != null) {
-		if (specifiedFileResolver == null && name === dockerfile) {
-			specifiedFileResolver = await resolveSpecifiedFile(
-				resolvers,
-				bundle,
-				name,
-				header,
-				stream,
-				pack,
-			);
-			return specifiedFileResolver;
+	const candidates = resolvers.filter(r =>
+		r.needsEntry(parsePosixPath(name), dockerfile),
+	);
+	if (candidates.length > 0) {
+		const fileInfo = {
+			name,
+			size: header.size || 0,
+			contents: await TarUtils.streamToBuffer(stream),
+		};
+		for (const resolver of candidates) {
+			resolver.entry(fileInfo);
 		}
+		// Also add it to the stream
+		pack.entry(header, fileInfo.contents);
 	} else {
-		// If we have not specified a dockerfile, we shouldn't consider
-		// any files not in the base of the context as the application
-		// bundle file
-		if (path.normalize(name).split(path.sep).length === 1) {
-			const potentials = resolvers.filter(r => r.needsEntry(name));
-			if (potentials.length > 0) {
-				const fileInfo = await streamToFileInfo(stream, header);
-				for (const resolver of potentials) {
-					resolver.entry(fileInfo);
-				}
-				// Also add it to the stream
-				pack.entry(header, fileInfo.contents);
-				return;
-			}
-		}
+		// Note: a tar-stream limitation requires a single pack.entry stream
+		// pipe operation to take place at a time, so we await for it:
+		// https://github.com/mafintosh/tar-stream/issues/24#issuecomment-54120650
+		await TarUtils.pipePromise(stream, pack.entry(header));
 	}
-	// Note: a tar-stream limitation requires a single pack.entry stream
-	// pipe operation to take place at a time, so we await for it:
-	// https://github.com/mafintosh/tar-stream/issues/24#issuecomment-54120650
-	await TarUtils.pipePromise(stream, pack.entry(header));
 }
 
 async function resolveTarStreamOnFinish(
 	bundle: Bundle,
 	resolvers: Resolver[],
 	pack: tar.Pack,
-	specifiedFileResolver: null | Resolver = null,
 	dockerfile?: string,
 ): Promise<void> {
-	// Ensure that at least one resolver is satisfied, otherwise emit an error
-	let resolver: Resolver;
+	// Detect if any of the resolvers have been satisfied
+	const satisfied = _(resolvers)
+		.filter(r => r.isSatisfied(bundle))
+		.orderBy('priority', 'desc')
+		.value();
 
-	// Firstly, check that if the user specified a dockerfile, and that dockerfile has
-	// been found and processed
-	if (dockerfile != null) {
-		if (specifiedFileResolver == null) {
-			pack.emit(
-				'error',
-				new Error(`Specified dockerfile could not be resolved: ${dockerfile}`),
-			);
-			return;
-		}
-		resolver = specifiedFileResolver;
-	} else {
-		// Detect if any of the resolvers have been satisfied
-		const satisfied = _(resolvers)
-			.filter(r => r.isSatisfied(bundle))
-			.orderBy('priority', 'desc')
-			.value();
-
-		if (satisfied.length === 0) {
-			pack.emit('error', new Error('Resolution could not be performed'));
-			return;
-		}
-
-		resolver = satisfied[0];
-		await addResolverOutput(bundle, resolver, pack);
+	if (satisfied.length === 0) {
+		pack.emit(
+			'error',
+			new Error(
+				dockerfile
+					? `Specified dockerfile could not be resolved: ${dockerfile}`
+					: 'Resolution could not be performed',
+			),
+		);
+		return;
 	}
+
+	const resolver = satisfied[0];
+	await addResolverOutput(bundle, resolver, pack, dockerfile);
 
 	// At this point, emit the resolver name, and the path of the resolved file
 	pack.emit('resolver', resolver.name);
@@ -225,67 +188,18 @@ async function resolveTarStreamOnFinish(
 	await bundle.callDockerfileHook(resolver.dockerfileContents);
 }
 
-async function resolveSpecifiedFile(
-	resolvers: Resolver[],
-	bundle: Bundle,
-	filename: string,
-	header: tar.Headers,
-	stream: Readable,
-	pack: tar.Pack,
-): Promise<Resolver> {
-	// Find the resolver which will be able to resolve this file
-	let potentials = _(resolvers)
-		.filter(r => r.allowSpecifiedDockerfile && r.needsEntry(filename))
-		.orderBy(r => r.priority, 'desc')
-		.value();
-
-	if (potentials.length === 0) {
-		// Assume that this is a plain Dockerfile
-
-		// Create a new dockerfile resolver, rather than assuming
-		// it's part of the resolver list
-		potentials = [new DockerfileResolver()];
-	}
-
-	// Take the resolver with the highest priority that can act upon this file
-	const resolver = potentials[0];
-
-	// Read the file into a FileInfo structure
-	const fileInfo = await streamToFileInfo(stream, header);
-
-	resolver.entry(fileInfo);
-
-	await addResolverOutput(bundle, resolver, pack, filename);
-
-	// Add it to the stream too
-	pack.entry({ name: fileInfo.name, size: fileInfo.size }, fileInfo.contents);
-
-	return resolver;
-}
-
 async function addResolverOutput(
 	bundle: Bundle,
 	resolver: Resolver,
 	pack: tar.Pack,
-	filename?: string,
+	specifiedDockerfilePath?: string,
 ): Promise<void> {
 	// Now read the file, allow the resolver to process it, and return it
-	const extraFiles = await resolver.resolve(bundle, filename);
+	const extraFiles = await resolver.resolve(bundle, specifiedDockerfilePath);
 
 	for (const file of extraFiles) {
 		pack.entry({ name: file.name, size: file.size }, file.contents);
 	}
-}
-
-async function streamToFileInfo(
-	stream: Readable,
-	header: tar.Headers,
-): Promise<FileInfo> {
-	return {
-		name: TarUtils.normalizeTarEntry(header.name),
-		size: header.size || 0,
-		contents: await TarUtils.streamToBuffer(stream),
-	};
 }
 
 export function getDefaultResolvers(): Resolver[] {
