@@ -47,7 +47,6 @@ const versionCache: {
 							.filter(versionTest)
 							.value() as string[];
 						const tags = prev.concat(curr);
-						console.log(`Trying ${res.next}`);
 
 						if (res.next != null) {
 							return get(tags, res.next);
