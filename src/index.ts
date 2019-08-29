@@ -26,7 +26,9 @@ import { Resolver } from './resolver';
 // Import some default resolvers
 import ArchDockerfileResolver from './resolvers/archDockerfile';
 import DockerfileResolver from './resolvers/dockerfile';
-import DockerfileTemplateResolver from './resolvers/dockerfileTemplate';
+import DockerfileTemplateResolver, {
+	DockerfileTemplateVariableError,
+} from './resolvers/dockerfileTemplate';
 import NodeResolver from './resolvers/nodeResolver';
 import { parsePosixPath } from './utils';
 
@@ -36,6 +38,7 @@ export {
 	Bundle,
 	DockerfileResolver,
 	DockerfileTemplateResolver,
+	DockerfileTemplateVariableError,
 	FileInfo,
 	Resolver,
 };
@@ -169,8 +172,8 @@ async function resolveTarStreamOnFinish(
 			'error',
 			new Error(
 				dockerfile
-					? `Specified dockerfile could not be resolved: ${dockerfile}`
-					: 'Resolution could not be performed',
+					? `Specified file not found or is invalid: ${dockerfile}`
+					: 'Could not find a Dockerfile for this service',
 			),
 		);
 		return;
