@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 import * as DockerfileTemplate from 'dockerfile-template';
+import TypedError = require('typed-error');
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
 import { ParsedPathPlus, removeExtension } from '../utils';
+
+export class DockerfileTemplateVariableError extends TypedError {}
 
 export class DockerfileTemplateResolver implements Resolver {
 	public priority = 2;
@@ -77,10 +80,14 @@ export class DockerfileTemplateResolver implements Resolver {
 			BALENA_MACHINE_NAME: bundle.deviceType,
 		};
 
-		this.dockerfileContents = DockerfileTemplate.process(
-			this.templateContent.toString(),
-			vars,
-		);
+		try {
+			this.dockerfileContents = DockerfileTemplate.process(
+				this.templateContent.toString(),
+				vars,
+			);
+		} catch (e) {
+			throw new DockerfileTemplateVariableError(e);
+		}
 
 		return new Promise<FileInfo[]>(resolve => {
 			// FIXME: submit a PR to DockerfileTemplate to take Buffers as an input

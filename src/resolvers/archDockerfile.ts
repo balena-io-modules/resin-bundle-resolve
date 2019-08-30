@@ -20,6 +20,7 @@ import * as DockerfileTemplate from 'dockerfile-template';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
 import { ParsedPathPlus, removeExtension } from '../utils';
+import { DockerfileTemplateVariableError } from './dockerfileTemplate';
 
 // Internal tuple to pass files and their extensions around
 // the class
@@ -104,10 +105,14 @@ export class ArchDockerfileResolver implements Resolver {
 			BALENA_MACHINE_NAME: bundle.deviceType,
 		};
 
-		this.dockerfileContents = DockerfileTemplate.process(
-			satisfied[1].contents.toString(),
-			vars,
-		);
+		try {
+			this.dockerfileContents = DockerfileTemplate.process(
+				satisfied[1].contents.toString(),
+				vars,
+			);
+		} catch (e) {
+			throw new DockerfileTemplateVariableError(e);
+		}
 
 		return Promise.resolve([
 			{

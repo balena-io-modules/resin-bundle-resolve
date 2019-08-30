@@ -17,6 +17,7 @@
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as fs from 'fs';
+import isString = require('lodash/isString');
 import { Readable } from 'stream';
 import * as tar from 'tar-stream';
 import * as TarUtils from 'tar-utils';
@@ -84,7 +85,7 @@ function getPromiseForEvents(
 	events: { [event: string]: (eventArg: Error | string) => void },
 	rejectOnError = true,
 	resolveOnEnd = false,
-): [Promise<object>, Resolve.ResolveListeners] {
+): [Promise<unknown>, Resolve.ResolveListeners] {
 	const listeners: Resolve.ResolveListeners = {};
 	const resolvePromise = new Promise((resolve, reject) => {
 		listeners['error'] = [rejectOnError ? reject : resolve];
@@ -281,6 +282,11 @@ describe('Resolvers', () => {
 				end: () => {
 					throw new Error('No error thrown for incorrect template variables');
 				},
+				error: err => {
+					expect(isString(err) ? err : err.message).to.equal(
+						'RESIN_DEVICE_TYPE is not defined',
+					);
+				},
 			},
 			false,
 		);
@@ -289,7 +295,7 @@ describe('Resolvers', () => {
 		return resolvePromise;
 	});
 
-	it('should reject a `nodeJS project with no engines entry', async function() {
+	it('should reject a nodeJS project with no engines entry', async function() {
 		let errorMessage: string;
 		try {
 			await testResolveInput({
@@ -306,7 +312,7 @@ describe('Resolvers', () => {
 		);
 	});
 
-	it('should resolve a nodeJS project', function() {
+	it.skip('should resolve a nodeJS project', function() {
 		this.timeout(3600000);
 		const deviceType = 'raspberrypi3';
 		return testResolveInput({
@@ -447,7 +453,7 @@ describe('Specifying dockerfiles', () => {
 			errorMessage = err.message;
 		}
 		expect(errorMessage).to.equal(
-			'Specified dockerfile could not be resolved: InexistentDockerfile',
+			'Specified file not found or is invalid: InexistentDockerfile',
 		);
 	});
 
@@ -464,6 +470,8 @@ describe('Specifying dockerfiles', () => {
 		} catch (err) {
 			errorMessage = err.message;
 		}
-		expect(errorMessage).to.equal('Resolution could not be performed');
+		expect(errorMessage).to.equal(
+			'Could not find a Dockerfile for this service',
+		);
 	});
 });
