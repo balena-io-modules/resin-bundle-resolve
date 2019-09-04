@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import * as DockerfileTemplate from 'dockerfile-template';
-import TypedError = require('typed-error');
+import { TypedError } from 'typed-error';
 
 import { Bundle, FileInfo, Resolver } from '../resolver';
 import { ParsedPathPlus, removeExtension } from '../utils';
