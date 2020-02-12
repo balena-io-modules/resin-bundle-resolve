@@ -72,6 +72,7 @@ export function resolveInput(
 	resolvers: Resolver[],
 	resolveListeners: ResolveListeners,
 	dockerfile?: string,
+	additionalTemplateVars?: { [key: string]: string },
 ): tar.Pack {
 	const extract = tar.extract();
 	const pack = tar.pack();
@@ -109,7 +110,13 @@ export function resolveInput(
 
 	extract.once('finish', async () => {
 		try {
-			await resolveTarStreamOnFinish(bundle, resolvers, pack, dockerfile);
+			await resolveTarStreamOnFinish(
+				bundle,
+				resolvers,
+				pack,
+				dockerfile,
+				additionalTemplateVars,
+			);
 		} catch (error) {
 			pack.emit('error', error);
 		} finally {
@@ -160,6 +167,7 @@ async function resolveTarStreamOnFinish(
 	resolvers: Resolver[],
 	pack: tar.Pack,
 	dockerfile?: string,
+	additionalTemplateVars?: { [key: string]: string },
 ): Promise<void> {
 	// Detect if any of the resolvers have been satisfied
 	const satisfied = _(resolvers)
@@ -180,7 +188,13 @@ async function resolveTarStreamOnFinish(
 	}
 
 	const resolver = satisfied[0];
-	await addResolverOutput(bundle, resolver, pack, dockerfile);
+	await addResolverOutput(
+		bundle,
+		resolver,
+		pack,
+		dockerfile,
+		additionalTemplateVars,
+	);
 
 	// At this point, emit the resolver name, and the path of the resolved file
 	pack.emit('resolver', resolver.name);
@@ -196,9 +210,14 @@ async function addResolverOutput(
 	resolver: Resolver,
 	pack: tar.Pack,
 	specifiedDockerfilePath?: string,
+	additionalTemplateVars?: { [key: string]: string },
 ): Promise<void> {
 	// Now read the file, allow the resolver to process it, and return it
-	const extraFiles = await resolver.resolve(bundle, specifiedDockerfilePath);
+	const extraFiles = await resolver.resolve(
+		bundle,
+		specifiedDockerfilePath,
+		additionalTemplateVars,
+	);
 
 	for (const file of extraFiles) {
 		pack.entry({ name: file.name, size: file.size }, file.contents);

@@ -123,6 +123,7 @@ async function testResolveInput({
 	shouldCallHook = true,
 	specifiedDockerfilePath,
 	tarFilePath,
+	additionalTemplateVars,
 }: {
 	architecture?: string;
 	deviceType?: string;
@@ -132,6 +133,7 @@ async function testResolveInput({
 	shouldCallHook?: boolean;
 	specifiedDockerfilePath: string;
 	tarFilePath: string;
+	additionalTemplateVars?: { [key: string]: string };
 }) {
 	let content: string;
 	let resolvedName: string;
@@ -164,6 +166,7 @@ async function testResolveInput({
 		defaultResolvers(),
 		listeners,
 		specifiedDockerfilePath,
+		additionalTemplateVars,
 	);
 
 	let tarContent;
@@ -473,5 +476,43 @@ describe('Specifying dockerfiles', () => {
 		expect(errorMessage).to.equal(
 			'Could not find a Dockerfile for this service',
 		);
+	});
+});
+
+describe('Additional template variables', () => {
+	it('Should allow providing extra template variables', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: undefined,
+			specifiedDockerfilePath: undefined,
+			dockerfileContentMatcher: content => {
+				return content === `test1\ntest2`;
+			},
+			expectedResolverName: 'Dockerfile.template',
+			shouldCallHook: true,
+			tarFilePath: './test-files/AdditionalTemplateVars/archive.tar',
+			additionalTemplateVars: {
+				TEST_VAR: 'test1',
+				SECOND_TEST_VAR: 'test2',
+			},
+		});
+	});
+
+	it('should allow extra template variables in arch/dt specific dockerfiles', () => {
+		return testResolveInput({
+			architecture: 'armv7hf',
+			deviceType: '',
+			expectedResolvedDockerfilePath: undefined,
+			specifiedDockerfilePath: undefined,
+			dockerfileContentMatcher: content => {
+				return content === `test1\ntest2`;
+			},
+			expectedResolverName: 'Architecture-specific Dockerfile',
+			shouldCallHook: true,
+			tarFilePath: './test-files/AdditionalTemplateVars/arch-template.tar',
+			additionalTemplateVars: {
+				TEST_VAR: 'test1',
+				SECOND_TEST_VAR: 'test2',
+			},
+		});
 	});
 });
