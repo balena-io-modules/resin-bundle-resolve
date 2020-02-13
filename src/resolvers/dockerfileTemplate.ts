@@ -65,6 +65,7 @@ export class DockerfileTemplateResolver implements Resolver {
 	public resolve(
 		bundle: Bundle,
 		specifiedDockerfilePath: string = 'Dockerfile',
+		additionalTemplateVars: Dictionary<string> = {},
 	): Promise<FileInfo[]> {
 		const dockerfile: FileInfo = {
 			name: this.getCanonicalName(specifiedDockerfilePath),
@@ -78,6 +79,7 @@ export class DockerfileTemplateResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 			BALENA_ARCH: bundle.architecture,
 			BALENA_MACHINE_NAME: bundle.deviceType,
+			...additionalTemplateVars,
 		};
 
 		try {

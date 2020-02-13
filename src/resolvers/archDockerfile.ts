@@ -74,6 +74,7 @@ export class ArchDockerfileResolver implements Resolver {
 	public resolve(
 		bundle: Bundle,
 		specifiedDockerfilePath?: string,
+		additionalTemplateVars: Dictionary<string> = {},
 	): Promise<FileInfo[]> {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then
@@ -103,6 +104,7 @@ export class ArchDockerfileResolver implements Resolver {
 			RESIN_MACHINE_NAME: bundle.deviceType,
 			BALENA_ARCH: bundle.architecture,
 			BALENA_MACHINE_NAME: bundle.deviceType,
+			...additionalTemplateVars,
 		};
 
 		try {
