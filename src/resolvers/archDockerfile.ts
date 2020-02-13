@@ -74,7 +74,7 @@ export class ArchDockerfileResolver implements Resolver {
 	public resolve(
 		bundle: Bundle,
 		specifiedDockerfilePath?: string,
-		additionalTemplateVars: { [key: string]: string } = {},
+		additionalTemplateVars: Dictionary<string> = {},
 	): Promise<FileInfo[]> {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then

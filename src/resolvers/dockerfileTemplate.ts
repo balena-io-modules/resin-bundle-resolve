@@ -65,7 +65,7 @@ export class DockerfileTemplateResolver implements Resolver {
 	public resolve(
 		bundle: Bundle,
 		specifiedDockerfilePath: string = 'Dockerfile',
-		additionalTemplateVars: { [key: string]: string } = {},
+		additionalTemplateVars: Dictionary<string> = {},
 	): Promise<FileInfo[]> {
 		const dockerfile: FileInfo = {
 			name: this.getCanonicalName(specifiedDockerfilePath),
