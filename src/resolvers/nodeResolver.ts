@@ -122,7 +122,7 @@ export class NodeResolver implements Resolver {
 					throw new Error(`package.json: ${e.message}`);
 				})
 				.then(packageJson => {
-					if (!_.isObject(packageJson)) {
+					if (typeof packageJson !== 'object') {
 						throw new Error('package.json: must be a JSON object');
 					}
 
