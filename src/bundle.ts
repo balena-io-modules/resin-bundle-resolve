@@ -17,10 +17,19 @@ export class Bundle {
 	public architecture: string;
 
 	/**
-	 * dockerfileHook: A function to be called with the resolved dockerfile
-	 * Note: The resolver will wait until the promise resolves before continuing
+	 * dockerfileHook: A function to be called with the
+	 * resolved dockerfile. If the hook returns a
+	 * string (or something which resolve to a string) we
+	 * replace the Dockerfile in place. Use this function for
+	 * further processing of the Dockerfile, after resolution
+	 * has determined the correct Dockerfile to use.
+	 *
+	 * NB: rather than null | string, we keep void | string to
+	 * avoid a breaking change
 	 */
-	private dockerfileHook: (content: string) => void | PromiseLike<void>;
+	private dockerfileHook: (
+		content: string,
+	) => void | undefined | string | PromiseLike<undefined | void | string>;
 
 	/**
 	 * constructor: Initialise a resin-bundle with a tar archive stream
@@ -45,8 +54,10 @@ export class Bundle {
 		this.dockerfileHook = hook;
 	}
 
-	public async callDockerfileHook(contents: string): Promise<void> {
-		await this.dockerfileHook(contents);
+	public async callDockerfileHook(
+		contents: string,
+	): Promise<ReturnType<Bundle['dockerfileHook']>> {
+		return await this.dockerfileHook(contents);
 	}
 }
 

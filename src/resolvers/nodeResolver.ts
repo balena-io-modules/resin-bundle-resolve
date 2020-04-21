@@ -111,7 +111,7 @@ export class NodeResolver implements Resolver {
 	public resolve(
 		bundle: Bundle,
 		_specifiedDockerfilePath?: string,
-	): Promise<FileInfo[]> {
+	): Promise<FileInfo> {
 		// Generate a dockerfile which will run the file
 		// Use latest node base image. Don't use the slim image just in case
 		// TODO: Find out which apt-get packages are installed mostly with node
@@ -170,12 +170,11 @@ export class NodeResolver implements Resolver {
 					`;
 						}
 						this.dockerfileContents = dockerfile;
-						const file: FileInfo = {
+						return {
 							name: 'Dockerfile',
 							size: dockerfile.length,
 							contents: new Buffer(dockerfile),
 						};
-						return [file];
 					});
 				}),
 		);

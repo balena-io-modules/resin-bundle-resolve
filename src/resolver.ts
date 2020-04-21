@@ -75,7 +75,7 @@ export interface Resolver {
 		bundle: Bundle,
 		specifiedDockerfilePath?: string,
 		additionalTemplateVars?: Dictionary<string>,
-	): Promise<FileInfo[]>;
+	): Promise<FileInfo>;
 
 	/**
 	 * getCanonicalName: If this resolver supports specifying a path as the main

@@ -52,12 +52,12 @@ export class DockerfileResolver implements Resolver {
 		return this.gotDockerfile;
 	}
 
-	public resolve(
-		_bundle: Bundle,
-		_specifiedDockerfilePath?: string,
-	): Promise<FileInfo[]> {
-		// We don't need to add any extra files to the Dockerfile project
-		return Promise.resolve([]);
+	public resolve(_bundle: Bundle, specifiedDockerfilePath?: string) {
+		return Promise.resolve({
+			name: specifiedDockerfilePath || 'Dockerfile',
+			contents: Buffer.from(this.dockerfileContents),
+			size: this.dockerfileContents.length,
+		});
 	}
 
 	public getDockerfileContents(): string {

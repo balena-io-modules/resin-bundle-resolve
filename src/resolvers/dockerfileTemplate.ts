@@ -66,13 +66,7 @@ export class DockerfileTemplateResolver implements Resolver {
 		bundle: Bundle,
 		specifiedDockerfilePath: string = 'Dockerfile',
 		additionalTemplateVars: Dictionary<string> = {},
-	): Promise<FileInfo[]> {
-		const dockerfile: FileInfo = {
-			name: this.getCanonicalName(specifiedDockerfilePath),
-			size: 0,
-			contents: new Buffer(''),
-		};
-
+	) {
 		// Generate the variables to replace
 		const vars: DockerfileTemplate.TemplateVariables = {
 			RESIN_ARCH: bundle.architecture,
@@ -91,11 +85,10 @@ export class DockerfileTemplateResolver implements Resolver {
 			throw new DockerfileTemplateVariableError(e);
 		}
 
-		return new Promise<FileInfo[]>(resolve => {
-			// FIXME: submit a PR to DockerfileTemplate to take Buffers as an input
-			dockerfile.contents = Buffer.from(this.dockerfileContents);
-			dockerfile.size = dockerfile.contents.length;
-			resolve([dockerfile]);
+		return Promise.resolve({
+			contents: Buffer.from(this.dockerfileContents),
+			size: this.dockerfileContents.length,
+			name: this.getCanonicalName(specifiedDockerfilePath),
 		});
 	}
 
