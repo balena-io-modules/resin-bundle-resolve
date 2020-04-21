@@ -173,7 +173,7 @@ export class NodeResolver implements Resolver {
 						return {
 							name: 'Dockerfile',
 							size: dockerfile.length,
-							contents: new Buffer(dockerfile),
+							contents: Buffer.from(dockerfile),
 						};
 					});
 				}),
