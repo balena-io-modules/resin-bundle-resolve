@@ -152,8 +152,14 @@ async function resolveTarStreamOnEntry(
 		for (const resolver of candidates) {
 			resolver.entry(fileInfo);
 		}
-		// Also add it to the stream
-		pack.entry(header, fileInfo.contents);
+
+		// We add every file to the final tar archive, unless
+		// it's named Dockerfile,  or is a specified Dockerfile
+		// path. We do this so we can add the final Dockerfile
+		// at the end and call all hooks upon it
+		if (name !== 'Dockerfile' && name !== dockerfile) {
+			pack.entry(header, fileInfo.contents);
+		}
 	} else {
 		// Note: a tar-stream limitation requires a single pack.entry stream
 		// pipe operation to take place at a time, so we await for it:
@@ -202,7 +208,6 @@ async function resolveTarStreamOnFinish(
 		const dockerfileLocation = resolver.getCanonicalName(dockerfile);
 		pack.emit('resolved-name', dockerfileLocation);
 	}
-	await bundle.callDockerfileHook(resolver.dockerfileContents);
 }
 
 async function addResolverOutput(
@@ -213,15 +218,15 @@ async function addResolverOutput(
 	additionalTemplateVars?: Dictionary<string>,
 ): Promise<void> {
 	// Now read the file, allow the resolver to process it, and return it
-	const extraFiles = await resolver.resolve(
+	const dockerfile = await resolver.resolve(
 		bundle,
 		specifiedDockerfilePath,
 		additionalTemplateVars,
 	);
 
-	for (const file of extraFiles) {
-		pack.entry({ name: file.name, size: file.size }, file.contents);
-	}
+	const content = dockerfile.contents.toString();
+	const newContent = (await bundle.callDockerfileHook(content)) || content;
+	pack.entry({ name: dockerfile.name, size: newContent.length }, newContent);
 }
 
 export function getDefaultResolvers(): Resolver[] {

@@ -75,7 +75,7 @@ export class ArchDockerfileResolver implements Resolver {
 		bundle: Bundle,
 		specifiedDockerfilePath?: string,
 		additionalTemplateVars: Dictionary<string> = {},
-	): Promise<FileInfo[]> {
+	) {
 		// Return the satisfied arch/deviceType specific dockerfile,
 		// as a plain Dockerfile, and the docker daemon will then
 		// execute that
@@ -116,13 +116,11 @@ export class ArchDockerfileResolver implements Resolver {
 			throw new DockerfileTemplateVariableError(e);
 		}
 
-		return Promise.resolve([
-			{
-				name,
-				size: satisfied[1].size,
-				contents: Buffer.from(this.dockerfileContents),
-			},
-		]);
+		return Promise.resolve({
+			name,
+			size: satisfied[1].size,
+			contents: Buffer.from(this.dockerfileContents),
+		});
 	}
 
 	public getCanonicalName(filename: string): string {

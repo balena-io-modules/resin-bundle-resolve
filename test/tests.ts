@@ -124,6 +124,7 @@ async function testResolveInput({
 	specifiedDockerfilePath,
 	tarFilePath,
 	additionalTemplateVars,
+	dockerfileHook,
 }: {
 	architecture?: string;
 	deviceType?: string;
@@ -134,17 +135,20 @@ async function testResolveInput({
 	specifiedDockerfilePath: string;
 	tarFilePath: string;
 	additionalTemplateVars?: { [key: string]: string };
+	dockerfileHook?: (content: string) => string | Promise<string>;
 }) {
 	let content: string;
 	let resolvedName: string;
 	let resolverName: string;
-	const hook = hookContent => {
-		if (shouldCallHook) {
-			content = hookContent;
-		} else {
-			throw new Error('hook should not be called');
-		}
-	};
+	const hook =
+		dockerfileHook ??
+		(hookContent => {
+			if (shouldCallHook) {
+				content = hookContent;
+			} else {
+				throw new Error('hook should not be called');
+			}
+		});
 	const tarStream = fs.createReadStream(require.resolve(tarFilePath));
 	const bundle = new Resolve.Bundle(tarStream, deviceType, architecture, hook);
 	const [resolvePromise, listeners] = getPromiseForEvents(
@@ -191,7 +195,7 @@ async function testResolveInput({
 			`Bad stream contents for "${expectedResolvedDockerfilePath}": ${tarContent.trim()}`,
 		);
 	}
-	if (shouldCallHook) {
+	if (shouldCallHook && dockerfileHook == null) {
 		expect(dockerfileContentMatcher(content.trim())).to.equal(
 			true,
 			`Bad contents in hook call: ${content.trim()}`,
@@ -354,6 +358,35 @@ describe('Hooks', () => {
 			expectedResolverName: 'Standard Dockerfile',
 			specifiedDockerfilePath: undefined,
 			tarFilePath: './test-files/Hooks/Dockerfile/archive.tar',
+		});
+	});
+
+	it('should allow a hook to change a Dockerfile in-place', () => {
+		return testResolveInput({
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Standard Dockerfile',
+			specifiedDockerfilePath: undefined,
+			dockerfileContentMatcher: contents => contents === 'Hook replacement',
+			dockerfileHook: () => {
+				console.log('The dockerfile hook  is being called');
+				return Promise.resolve('Hook replacement');
+			},
+			tarFilePath: './test-files/Hooks/Dockerfile/archive.tar',
+		});
+	});
+
+	it('should allow a hook to change a Dockerfile.template in-place', () => {
+		const deviceType = 'device-type-test';
+		const arch = 'architecture-test';
+		return testResolveInput({
+			architecture: arch,
+			deviceType,
+			dockerfileContentMatcher: contents => contents === 'Hook replacement',
+			expectedResolvedDockerfilePath: 'Dockerfile',
+			expectedResolverName: 'Dockerfile.template',
+			dockerfileHook: () => Promise.resolve('Hook replacement'),
+			specifiedDockerfilePath: undefined,
+			tarFilePath: './test-files/DockerfileTemplate/archive.tar',
 		});
 	});
 });
