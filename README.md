@@ -1,5 +1,7 @@
 # Resin-bundle-resolve
 
+**DEPRECATED -- This module has been deprecated; please use [balena-compose](https://github.com/balena-io-modules/balena-compose) instead.**
+
 Resolve resin bundles into a format recognised by the docker daemon.
 `resin-bundle-resolve` is written in typescript.
 
